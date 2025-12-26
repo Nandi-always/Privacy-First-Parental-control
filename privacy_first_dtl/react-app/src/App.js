@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import ParentDashboard from './pages/ParentDashboard';
 import ChildDashboard from './pages/ChildDashboard';
-import './App.css';
 
 function App() {
   const [user, setUser] = useState(null);
