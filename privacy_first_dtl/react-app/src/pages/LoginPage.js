@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, User, ArrowRight } from 'lucide-react';
+import { authService } from '../services/apiService';
 import '../styles/LoginPage.css';
 
 const LoginPage = ({ setUser }) => {
@@ -12,33 +13,44 @@ const LoginPage = ({ setUser }) => {
   const [childName, setChildName] = useState('');
   const [childAge, setChildAge] = useState('');
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    const userData = { email, role, type: 'login' };
-    setUser(userData);
-    
-    if (role === 'parent') {
-      navigate('/parent-dashboard');
-    } else {
-      navigate('/child-dashboard');
+    try {
+      const res = await authService.login(email, password);
+      const { token, user: returnedUser } = res.data || res;
+      if (token) {
+        localStorage.setItem('auth_token', token);
+        localStorage.setItem('user', JSON.stringify(returnedUser));
+        setUser(returnedUser);
+        if (returnedUser.role === 'parent') navigate('/parent-dashboard');
+        else navigate('/child-dashboard');
+      }
+    } catch (err) {
+      console.error('Login error', err);
+      alert(err.response?.data?.message || err.message || 'Login failed');
     }
   };
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
-    const userData = { 
-      email, 
-      role, 
-      type: 'register',
-      childName: role === 'child' ? childName : null,
-      childAge: role === 'child' ? childAge : null
-    };
-    setUser(userData);
-    
-    if (role === 'parent') {
-      navigate('/parent-dashboard');
-    } else {
-      navigate('/child-dashboard');
+    try {
+      const payload = { name: childName || 'User', email, password, role };
+      const res = await authService.register(payload);
+      const { token, user: returnedUser } = res.data || res;
+      if (token) {
+        localStorage.setItem('auth_token', token);
+        localStorage.setItem('user', JSON.stringify(returnedUser));
+        setUser(returnedUser);
+        if (returnedUser.role === 'parent') navigate('/parent-dashboard');
+        else navigate('/child-dashboard');
+      } else {
+        // If API returns only message, fallback to navigate
+        if (role === 'parent') navigate('/parent-dashboard');
+        else navigate('/child-dashboard');
+      }
+    } catch (err) {
+      console.error('Register error', err);
+      alert(err.response?.data?.message || err.message || 'Registration failed');
     }
   };
 

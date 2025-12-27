@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Plus, BarChart3, MapPin, AlertCircle, Users } from 'lucide-react';
 import ParentHeader from '../components/ParentHeader';
@@ -6,17 +6,33 @@ import ScreenTimeCard from '../components/ScreenTimeCard';
 import LocationMap from '../components/LocationMap';
 import ActivityReport from '../components/ActivityReport';
 import AlertsPanel from '../components/AlertsPanel';
+import { childrenService } from '../services/apiService';
 import '../styles/Dashboard.css';
 
 const ParentDashboard = ({ user }) => {
   const navigate = useNavigate();
-  const [children, setChildren] = useState([
-    { id: 1, name: 'John', age: 12, screenTime: 45, limit: 60, status: 'active' },
-    { id: 2, name: 'Sarah', age: 14, screenTime: 30, limit: 90, status: 'active' }
-  ]);
+  const [children, setChildren] = useState([]);
 
   const [activeTab, setActiveTab] = useState('overview');
-  const [selectedChild, setSelectedChild] = useState(children[0]);
+  const [selectedChild, setSelectedChild] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await childrenService.getAll();
+        const data = res.data || res;
+        const childrenList = data.children || data;
+        if (mounted) {
+          setChildren(childrenList);
+          if (childrenList.length) setSelectedChild(childrenList[0]);
+        }
+      } catch (err) {
+        console.error('Failed to fetch children', err);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const handleLogout = () => {
     navigate('/');
@@ -74,18 +90,18 @@ const ParentDashboard = ({ user }) => {
         <main className="dashboard-content">
           {/* Children Quick View */}
           <div className="children-selector">
-            {children.map(child => (
-              <div 
-                key={child.id}
-                className={`child-card ${selectedChild.id === child.id ? 'selected' : ''}`}
+            {children.map((child) => (
+              <div
+                key={child._id || child.id}
+                className={`child-card ${selectedChild && (selectedChild._id === child._id || selectedChild.id === child.id) ? 'selected' : ''}`}
                 onClick={() => setSelectedChild(child)}
               >
-                <div className="child-avatar">{child.name.charAt(0)}</div>
+                <div className="child-avatar">{(child.name && child.name.charAt(0)) || 'C'}</div>
                 <div className="child-info">
                   <h4>{child.name}</h4>
-                  <p>Age {child.age}</p>
+                  <p>Age {child.age || '—'}</p>
                 </div>
-                <div className={`status-badge ${child.status}`}>{child.status}</div>
+                <div className={`status-badge ${child.status || 'unknown'}`}>{child.status || 'unknown'}</div>
               </div>
             ))}
           </div>
