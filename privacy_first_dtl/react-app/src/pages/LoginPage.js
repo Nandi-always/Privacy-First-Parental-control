@@ -71,25 +71,54 @@ const LoginPage = () => {
             </p>
             
             <div className="hero-features">
-              <div className="hero-feature">
-                <div className="feature-icon">⏱️</div>
-                <h3>Screen Time Control</h3>
-                <p>Set daily limits, app-specific timers, and time slots for healthy device usage</p>
-              </div>
-              <div className="hero-feature">
-                <div className="feature-icon">🚫</div>
-                <h3>Smart App Rules</h3>
-                <p>Block/allow apps by category, set custom rules, and approve new downloads</p>
-              </div>
-              <div className="hero-feature">
-                <div className="feature-icon">📍</div>
-                <h3>Location Tracking</h3>
-                <p>Live GPS tracking, location history, and most visited places</p>
-              </div>
-              <div className="hero-feature">
-                <div className="feature-icon">🆘</div>
-                <h3>Emergency SOS</h3>
-                <p>Children can send emergency alerts with location to parents instantly</p>
+              <div className="features-grid">
+                <div className="hero-feature">
+                  <div className="feature-icon">🔐</div>
+                  <h3>Authentication & Security</h3>
+                  <p>JWT-based auth, role-based access, session persistence, and secure API tokens.</p>
+                </div>
+
+                <div className="hero-feature">
+                  <div className="feature-icon">👥</div>
+                  <h3>Child Management</h3>
+                  <p>Create and manage child profiles, device info, trust mode, privacy contracts, and age-based rules.</p>
+                </div>
+
+                <div className="hero-feature">
+                  <div className="feature-icon">📱</div>
+                  <h3>App & Website Controls</h3>
+                  <p>Per-app and per-website rules, category-based allow/block, safe-search enforcement, and download approvals.</p>
+                </div>
+
+                <div className="hero-feature">
+                  <div className="feature-icon">⏱️</div>
+                  <h3>Screen Time & Scheduling</h3>
+                  <p>Daily limits, per-app timers, scheduled time slots, pause/resume internet, and notifications on limits.</p>
+                </div>
+
+                <div className="hero-feature">
+                  <div className="feature-icon">📍</div>
+                  <h3>Location & History</h3>
+                  <p>Live location, location history (30 days), most visited places, and address resolution.</p>
+                </div>
+
+                <div className="hero-feature">
+                  <div className="feature-icon">🆘</div>
+                  <h3>Emergency Alerts (SOS)</h3>
+                  <p>Instant SOS with location to parents, acknowledgement flow, and emergency alert history.</p>
+                </div>
+
+                <div className="hero-feature">
+                  <div className="feature-icon">📊</div>
+                  <h3>Reports & Insights</h3>
+                  <p>Daily, weekly and 30-day reports, app usage breakdowns, trends, and real-time activity status.</p>
+                </div>
+
+                <div className="hero-feature">
+                  <div className="feature-icon">🔔</div>
+                  <h3>Notifications & Alerts</h3>
+                  <p>In-app notifications, download alerts, rule-change notifications and socket-ready real-time alerts.</p>
+                </div>
               </div>
             </div>
           </div>
