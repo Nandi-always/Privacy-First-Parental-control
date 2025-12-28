@@ -1,31 +1,61 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Shield, Clock, MapPin, BookOpen, AlertCircle, Home } from 'lucide-react';
+import { Shield, Clock, MapPin, BookOpen, AlertCircle, Home } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { useNotification } from '../context/NotificationContext';
 import ChildHeader from '../components/ChildHeader';
 import PrivacyScoreCard from '../components/PrivacyScoreCard';
 import ScreenTimeWidget from '../components/ScreenTimeWidget';
 import '../styles/Dashboard.css';
 
-const ChildDashboard = ({ user }) => {
+const ChildDashboard = () => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const notify = useNotification();
   const [activeTab, setActiveTab] = useState('home');
+  const [childData, setChildData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const childData = {
-    name: 'Alex',
-    age: 12,
-    privacyScore: 78,
-    screenTime: { used: 45, limit: 60 },
-    agreements: 2,
-    location: 'At Home'
-  };
+  useEffect(() => {
+    // Initialize child data from user or fetch from API
+    if (user) {
+      setChildData({
+        name: user.name || 'Child',
+        age: user.age || 12,
+        privacyScore: 78,
+        screenTime: { used: 45, limit: 60 },
+        agreements: 2,
+        location: 'At Home'
+      });
+    }
+    setLoading(false);
+  }, [user]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
   };
 
   const handleSOS = () => {
-    alert('🆘 SOS Alert sent to parents with your location!');
+    notify.warning('🆘 SOS Alert sent to parents with your location!');
   };
+
+  const handleAgreeRule = () => {
+    notify.success('Rule agreement saved!');
+  };
+
+  const handleDeclineRule = () => {
+    notify.info('Rule decline recorded');
+  };
+
+  if (loading || !childData) {
+    return (
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <p>Loading your dashboard...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard child-dashboard">
@@ -111,7 +141,7 @@ const ChildDashboard = ({ user }) => {
                   <div className="agreement-info">
                     <p className="agreement-count">{childData.agreements}</p>
                     <p className="agreement-label">Active Agreements</p>
-                    <button className="view-btn">View Details →</button>
+                    <button className="view-btn" onClick={() => setActiveTab('rules')}>View Details →</button>
                   </div>
                 </div>
 
@@ -195,8 +225,8 @@ const ChildDashboard = ({ user }) => {
                   <h4>Social Media Limit</h4>
                   <p>Maximum 1 hour per day for TikTok and Instagram</p>
                   <div className="rule-actions">
-                    <button className="btn-agree">Agree</button>
-                    <button className="btn-decline">Decline</button>
+                    <button className="btn-agree" onClick={handleAgreeRule}>Agree</button>
+                    <button className="btn-decline" onClick={handleDeclineRule}>Decline</button>
                   </div>
                 </div>
 
