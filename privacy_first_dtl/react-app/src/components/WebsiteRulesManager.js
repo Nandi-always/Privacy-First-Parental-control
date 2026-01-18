@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, Edit2, Globe } from 'lucide-react';
 import { appRuleService } from '../services/apiService';
 import { useNotification } from '../context/NotificationContext';
@@ -18,7 +18,7 @@ const WebsiteRulesManager = ({ childId }) => {
     allowedEndTime: '21:00'
   });
 
-  const fetchRules = async () => {
+  const fetchRules = useCallback(async () => {
     try {
       setLoading(true);
       const res = await appRuleService.getByChild(childId);
@@ -30,11 +30,11 @@ const WebsiteRulesManager = ({ childId }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [childId, notify]);
 
   useEffect(() => {
     if (childId) fetchRules();
-  }, [childId]);
+  }, [childId, fetchRules]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

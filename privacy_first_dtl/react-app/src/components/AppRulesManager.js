@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, Edit2, Clock, Ban } from 'lucide-react';
 import { appRuleService } from '../services/apiService';
 import { useNotification } from '../context/NotificationContext';
@@ -20,7 +20,7 @@ const AppRulesManager = ({ childId }) => {
     allowedDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
   });
 
-  const fetchRules = async () => {
+  const fetchRules = useCallback(async () => {
     try {
       setLoading(true);
       const res = await appRuleService.getByChild(childId);
@@ -31,11 +31,11 @@ const AppRulesManager = ({ childId }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [childId, notify]);
 
   useEffect(() => {
     if (childId) fetchRules();
-  }, [childId]);
+  }, [childId, fetchRules]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

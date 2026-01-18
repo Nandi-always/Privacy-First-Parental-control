@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Check, X, Package } from 'lucide-react';
 import { downloadAlertService } from '../services/apiService';
 import { useNotification } from '../context/NotificationContext';
@@ -10,13 +10,7 @@ const AppApprovalManager = ({ childId }) => {
   const [loading, setLoading] = useState(false);
   const [approvedApps, setApprovedApps] = useState([]);
 
-  useEffect(() => {
-    if (childId) {
-      fetchPendingApps();
-    }
-  }, [childId]);
-
-  const fetchPendingApps = async () => {
+  const fetchPendingApps = useCallback(async () => {
     try {
       setLoading(true);
       const res = await downloadAlertService.getByChild(childId);
@@ -30,7 +24,13 @@ const AppApprovalManager = ({ childId }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [childId, notify]);
+
+  useEffect(() => {
+    if (childId) {
+      fetchPendingApps();
+    }
+  }, [childId, fetchPendingApps]);
 
   const handleApprove = async (alertId) => {
     try {

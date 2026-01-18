@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Save, AlertCircle } from 'lucide-react';
 import { screenTimeService } from '../services/apiService';
 import { useNotification } from '../context/NotificationContext';
@@ -21,11 +21,7 @@ const ScreenTimeSettingsPanel = ({ childId }) => {
     breakInterval: 30
   });
 
-  useEffect(() => {
-    fetchScreenTimeSettings();
-  }, [childId]);
-
-  const fetchScreenTimeSettings = async () => {
+  const fetchScreenTimeSettings = useCallback(async () => {
     if (!childId) return;
     try {
       setLoading(true);
@@ -39,7 +35,11 @@ const ScreenTimeSettingsPanel = ({ childId }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [childId]);
+
+  useEffect(() => {
+    fetchScreenTimeSettings();
+  }, [childId, fetchScreenTimeSettings]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
