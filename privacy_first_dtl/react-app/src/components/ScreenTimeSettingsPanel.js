@@ -26,12 +26,13 @@ const ScreenTimeSettingsPanel = ({ childId }) => {
     try {
       setLoading(true);
       // Fetch existing settings if available
-      const res = await screenTimeService.getByChild(childId);
+      const res = await screenTimeService.get(childId);
       if (res.data) {
         setFormData(prev => ({ ...prev, ...res.data }));
       }
     } catch (err) {
       console.error('Failed to fetch screen time settings', err);
+      // Silently fail - use default settings
     } finally {
       setLoading(false);
     }

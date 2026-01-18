@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, Edit2, Globe } from 'lucide-react';
-import { appRuleService } from '../services/apiService';
+import { rulesService } from '../services/apiService';
 import { useNotification } from '../context/NotificationContext';
 import '../styles/Cards.css';
 
@@ -21,16 +21,17 @@ const WebsiteRulesManager = ({ childId }) => {
   const fetchRules = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await appRuleService.getByChild(childId);
+      const res = await rulesService.getAll(childId);
       const websiteRules = res.data?.filter(r => r.websiteUrl) || [];
       setRules(websiteRules);
     } catch (err) {
       console.error('Failed to fetch website rules', err);
-      notify.error('Failed to load website rules');
+      // Silently fail if backend is not available
+      setRules([]);
     } finally {
       setLoading(false);
     }
-  }, [childId, notify]);
+  }, [childId]);
 
   useEffect(() => {
     if (childId) fetchRules();
@@ -53,10 +54,10 @@ const WebsiteRulesManager = ({ childId }) => {
 
     try {
       if (editingRule) {
-        await appRuleService.update(editingRule._id, { ...formData, child: childId });
+        await rulesService.update(editingRule._id, { ...formData, child: childId });
         notify.success('Website rule updated!');
       } else {
-        await appRuleService.create({ ...formData, child: childId, type: 'WEBSITE' });
+        await rulesService.create({ ...formData, child: childId, type: 'WEBSITE' });
         notify.success('Website rule created!');
       }
       resetForm();
@@ -69,7 +70,7 @@ const WebsiteRulesManager = ({ childId }) => {
   const handleDelete = async (ruleId) => {
     if (window.confirm('Delete this website rule?')) {
       try {
-        await appRuleService.delete(ruleId);
+        await rulesService.delete(ruleId);
         notify.success('Rule deleted!');
         fetchRules();
       } catch (err) {

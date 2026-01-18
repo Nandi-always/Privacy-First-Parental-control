@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, BarChart3, MapPin, AlertCircle, Users, Settings, Lock } from 'lucide-react';
+import { Plus, BarChart3, MapPin, AlertCircle, Settings, Lock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import ParentHeader from '../components/ParentHeader';

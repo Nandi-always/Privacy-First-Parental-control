@@ -1,8 +1,31 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BarChart3, TrendingUp } from 'lucide-react';
+import { reportsService } from '../services/apiService';
 import '../styles/Cards.css';
 
-const ActivityReport = ({ activities = [] }) => {
+const ActivityReport = ({ child }) => {
+  const [activities, setActivities] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchActivityReport = useCallback(async () => {
+    if (!child?._id && !child?.id) return;
+    try {
+      setLoading(true);
+      const childId = child._id || child.id;
+      const res = await reportsService.getActivity(childId);
+      setActivities(res.data || []);
+    } catch (err) {
+      console.error('Failed to fetch activity report', err);
+      setActivities([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [child]);
+
+  useEffect(() => {
+    fetchActivityReport();
+  }, [child?.id, child?._id, fetchActivityReport]);
+
   const mockActivities = activities.length ? activities : [
     { date: 'Today', sessions: 12, totalTime: 150 },
     { date: 'Yesterday', sessions: 14, totalTime: 165 },
@@ -21,43 +44,50 @@ const ActivityReport = ({ activities = [] }) => {
         <div className="card-title-group">
           <BarChart3 size={20} className="card-icon" />
           <h3>Activity Report</h3>
+          {child && <span className="child-name">for {child.name}</span>}
         </div>
         <TrendingUp size={18} className="trend-icon" />
       </div>
 
-      <div className="report-summary">
-        <div className="summary-item">
-          <span className="summary-label">Average Daily Time</span>
-          <span className="summary-value">{avgTime} min</span>
-        </div>
-        <div className="summary-item">
-          <span className="summary-label">Total Sessions (7 days)</span>
-          <span className="summary-value">
-            {mockActivities.reduce((sum, a) => sum + a.sessions, 0)}
-          </span>
-        </div>
-      </div>
-
-      <div className="activity-timeline">
-        <h4 className="timeline-title">Weekly Activity</h4>
-        <div className="timeline-list">
-          {mockActivities.map((activity, idx) => (
-            <div key={idx} className="timeline-item">
-              <div className="timeline-date">{activity.date}</div>
-              <div className="timeline-stats">
-                <span className="stat">{activity.sessions} sessions</span>
-                <span className="stat">{activity.totalTime} mins</span>
-              </div>
-              <div className="timeline-bar">
-                <div 
-                  className="timeline-progress"
-                  style={{ width: `${(activity.totalTime / 180) * 100}%` }}
-                ></div>
-              </div>
+      {loading ? (
+        <p className="loading-text">Loading activity...</p>
+      ) : (
+        <>
+          <div className="report-summary">
+            <div className="summary-item">
+              <span className="summary-label">Average Daily Time</span>
+              <span className="summary-value">{avgTime} min</span>
             </div>
-          ))}
-        </div>
-      </div>
+            <div className="summary-item">
+              <span className="summary-label">Total Sessions (7 days)</span>
+              <span className="summary-value">
+                {mockActivities.reduce((sum, a) => sum + a.sessions, 0)}
+              </span>
+            </div>
+          </div>
+
+          <div className="activity-timeline">
+            <h4 className="timeline-title">Weekly Activity</h4>
+            <div className="timeline-list">
+              {mockActivities.map((activity, idx) => (
+                <div key={idx} className="timeline-item">
+                  <div className="timeline-date">{activity.date}</div>
+                  <div className="timeline-stats">
+                    <span className="stat">{activity.sessions} sessions</span>
+                    <span className="stat">{activity.totalTime} mins</span>
+                  </div>
+                  <div className="timeline-bar">
+                    <div 
+                      className="timeline-progress"
+                      style={{ width: `${(activity.totalTime / 180) * 100}%` }}
+                    ></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

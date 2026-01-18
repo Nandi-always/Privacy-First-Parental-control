@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Check, X, Package } from 'lucide-react';
-import { downloadAlertService } from '../services/apiService';
+import { downloadsService } from '../services/apiService';
 import { useNotification } from '../context/NotificationContext';
 import '../styles/Cards.css';
 
@@ -13,18 +13,20 @@ const AppApprovalManager = ({ childId }) => {
   const fetchPendingApps = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await downloadAlertService.getByChild(childId);
+      const res = await downloadsService.getAlerts(childId);
       const pending = res.data?.filter(app => app.status === 'PENDING') || [];
       const approved = res.data?.filter(app => app.status === 'APPROVED') || [];
       setPendingApps(pending);
       setApprovedApps(approved);
     } catch (err) {
       console.error('Failed to fetch app downloads', err);
-      notify.error('Failed to load app downloads');
+      // Silently fail - no apps to show
+      setPendingApps([]);
+      setApprovedApps([]);
     } finally {
       setLoading(false);
     }
-  }, [childId, notify]);
+  }, [childId]);
 
   useEffect(() => {
     if (childId) {
@@ -34,7 +36,7 @@ const AppApprovalManager = ({ childId }) => {
 
   const handleApprove = async (alertId) => {
     try {
-      await downloadAlertService.approve(alertId);
+      await downloadsService.approve(alertId);
       notify.success('App approved!');
       fetchPendingApps();
     } catch (err) {
@@ -44,7 +46,7 @@ const AppApprovalManager = ({ childId }) => {
 
   const handleBlock = async (alertId) => {
     try {
-      await downloadAlertService.block(alertId);
+      await downloadsService.block(alertId);
       notify.success('App blocked!');
       fetchPendingApps();
     } catch (err) {

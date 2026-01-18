@@ -106,6 +106,10 @@ export const reportsService = {
 export const downloadsService = {
   getAlerts: (childId) =>
     apiClient.get(API_ENDPOINTS.DOWNLOADS.GET_ALERTS(childId)),
+  approve: (id) =>
+    apiClient.post(`/downloads/${id}/approve`),
+  block: (id) =>
+    apiClient.post(`/downloads/${id}/block`),
 };
 
 export default apiClient;
