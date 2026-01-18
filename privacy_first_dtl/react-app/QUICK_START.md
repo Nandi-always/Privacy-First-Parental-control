@@ -1,4 +1,4 @@
-# 🚀 SafeGuard React Frontend - Quick Start Guide
+# "npm run clean-start"🚀 SafeGuard React Frontend - Quick Start Guide
 
 ## Getting Started in 3 Easy Steps
 

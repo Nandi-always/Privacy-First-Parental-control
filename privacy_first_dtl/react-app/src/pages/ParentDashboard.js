@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, BarChart3, MapPin, AlertCircle, Users } from 'lucide-react';
+import { Plus, BarChart3, MapPin, AlertCircle, Users, Settings, Lock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import ParentHeader from '../components/ParentHeader';
@@ -9,6 +9,12 @@ import ScreenTimeCard from '../components/ScreenTimeCard';
 import LocationMap from '../components/LocationMap';
 import ActivityReport from '../components/ActivityReport';
 import AlertsPanel from '../components/AlertsPanel';
+import AppRulesManager from '../components/AppRulesManager';
+import WebsiteRulesManager from '../components/WebsiteRulesManager';
+import ScreenTimeSettingsPanel from '../components/ScreenTimeSettingsPanel';
+import AppApprovalManager from '../components/AppApprovalManager';
+import InternetControlPanel from '../components/InternetControlPanel';
+import AppCategoryControl from '../components/AppCategoryControl';
 import { childrenService } from '../services/apiService';
 import '../styles/Dashboard.css';
 
@@ -77,11 +83,18 @@ const ParentDashboard = () => {
               <span>Overview</span>
             </button>
             <button 
-              className={`nav-item ${activeTab === 'screentime' ? 'active' : ''}`}
-              onClick={() => setActiveTab('screentime')}
+              className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
+              onClick={() => setActiveTab('settings')}
             >
-              <Users size={20} />
-              <span>Children</span>
+              <Settings size={20} />
+              <span>Settings</span>
+            </button>
+            <button 
+              className={`nav-item ${activeTab === 'rules' ? 'active' : ''}`}
+              onClick={() => setActiveTab('rules')}
+            >
+              <Lock size={20} />
+              <span>App Rules</span>
             </button>
             <button 
               className={`nav-item ${activeTab === 'locations' ? 'active' : ''}`}
@@ -179,13 +192,24 @@ const ParentDashboard = () => {
                 </div>
               )}
 
-              {activeTab === 'screentime' && (
-                <div className="tab-content">
-                  <h2>Screen Time Management</h2>
-                  <div className="children-grid">
-                    {children.map(child => (
-                      <ScreenTimeCard key={child.id || child._id} child={child} />
-                    ))}
+              {activeTab === 'settings' && selectedChild && (
+                <div className="tab-content settings-tab">
+                  <h2>⚙️ Child Settings - {selectedChild.name}</h2>
+                  <div className="settings-grid">
+                    <ScreenTimeSettingsPanel childId={selectedChild._id || selectedChild.id} />
+                    <AppCategoryControl childId={selectedChild._id || selectedChild.id} />
+                    <InternetControlPanel childId={selectedChild._id || selectedChild.id} />
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'rules' && selectedChild && (
+                <div className="tab-content rules-tab">
+                  <h2>🔒 Control Rules - {selectedChild.name}</h2>
+                  <div className="rules-grid">
+                    <AppRulesManager childId={selectedChild._id || selectedChild.id} />
+                    <WebsiteRulesManager childId={selectedChild._id || selectedChild.id} />
+                    <AppApprovalManager childId={selectedChild._id || selectedChild.id} />
                   </div>
                 </div>
               )}
