@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Power, AlertCircle } from 'lucide-react';
+import { Power, AlertCircle, Wifi } from 'lucide-react';
 import { useNotification } from '../context/NotificationContext';
-import '../styles/Cards.css';
+import '../styles/ChildSettings.css';
 
 const InternetControlPanel = ({ childId }) => {
   const notify = useNotification();
@@ -40,89 +40,95 @@ const InternetControlPanel = ({ childId }) => {
   return (
     <div className={`card internet-control ${isInternetPaused ? 'paused' : ''}`}>
       <div className="card-header">
-        <h3>🌐 Internet Control</h3>
+        <h3><Wifi size={20} /> Internet Control</h3>
       </div>
 
-      <div className="control-panel">
-        <div className="status-display">
-          <div className={`status-indicator ${isInternetPaused ? 'paused' : 'active'}`}>
-            <Power size={24} />
-          </div>
-          <div className="status-text">
-            <p className="status-title">
-              {isInternetPaused ? 'Internet Paused' : 'Internet Active'}
-            </p>
-            {pausedUntil && (
-              <p className="status-info">
-                Resumes at {pausedUntil.toLocaleTimeString()}
+      <div className="card-content">
+        <div className="control-panel">
+          <div className="status-display">
+            <div className={`status-indicator ${isInternetPaused ? 'paused' : 'active'}`}>
+              <Wifi size={24} />
+            </div>
+            <div className="status-text">
+              <p className="status-title">
+                {isInternetPaused ? 'Internet Paused' : 'Internet Active'}
               </p>
-            )}
+              {pausedUntil && (
+                <p className="status-info">
+                  Resumes at {pausedUntil.toLocaleTimeString()}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
 
-        <button
-          className={`btn ${isInternetPaused ? 'btn-success' : 'btn-danger'}`}
-          onClick={handleToggleInternet}
-          disabled={loading}
-        >
-          <Power size={18} />
-          {isInternetPaused ? 'Resume Internet' : 'Pause Internet'}
-        </button>
+          <button
+            className={`btn ${isInternetPaused ? 'btn-success' : 'btn-danger'}`}
+            onClick={handleToggleInternet}
+            disabled={loading}
+          >
+            <Power size={18} />
+            {isInternetPaused ? 'Resume Internet' : 'Pause Internet'}
+          </button>
 
-        <div className="control-info">
-          <AlertCircle size={18} />
-          <p>
-            {isInternetPaused 
-              ? 'Child cannot access internet. This will override all app settings.'
-              : 'Child has full internet access. Apps and websites rules still apply.'
-            }
-          </p>
-        </div>
+          <div className="control-info">
+            <AlertCircle size={18} />
+            <p>
+              {isInternetPaused 
+                ? 'Your child cannot access the internet. This will override all app settings. They can still receive emergency notifications.'
+                : 'Your child has full internet access. App category and website rules still apply.'
+              }
+            </p>
+          </div>
 
-        {/* Quick Pause Options */}
-        <div className="quick-options">
-          <h4>Quick Pause Duration</h4>
-          <div className="button-group">
-            <button
-              className="btn btn-sm"
-              onClick={() => {
-                setPausedUntil(new Date(Date.now() + 15 * 60000));
-                setIsInternetPaused(true);
-                notify.success('Internet paused for 15 minutes!');
-              }}
-            >
-              15 min
-            </button>
-            <button
-              className="btn btn-sm"
-              onClick={() => {
-                setPausedUntil(new Date(Date.now() + 30 * 60000));
-                setIsInternetPaused(true);
-                notify.success('Internet paused for 30 minutes!');
-              }}
-            >
-              30 min
-            </button>
-            <button
-              className="btn btn-sm"
-              onClick={() => {
-                setPausedUntil(new Date(Date.now() + 60 * 60000));
-                setIsInternetPaused(true);
-                notify.success('Internet paused for 1 hour!');
-              }}
-            >
-              1 hour
-            </button>
-            <button
-              className="btn btn-sm"
-              onClick={() => {
-                setPausedUntil(new Date(Date.now() + 24 * 60 * 60000));
-                setIsInternetPaused(true);
-                notify.success('Internet paused for 24 hours!');
-              }}
-            >
-              24 hours
-            </button>
+          {/* Quick Pause Options */}
+          <div className="quick-options">
+            <h4>Quick Pause Duration</h4>
+            <div className="button-group">
+              <button
+                className="btn btn-sm"
+                type="button"
+                onClick={() => {
+                  setPausedUntil(new Date(Date.now() + 15 * 60000));
+                  setIsInternetPaused(true);
+                  notify.success('Internet paused for 15 minutes!');
+                }}
+              >
+                15 min
+              </button>
+              <button
+                className="btn btn-sm"
+                type="button"
+                onClick={() => {
+                  setPausedUntil(new Date(Date.now() + 30 * 60000));
+                  setIsInternetPaused(true);
+                  notify.success('Internet paused for 30 minutes!');
+                }}
+              >
+                30 min
+              </button>
+              <button
+                className="btn btn-sm"
+                type="button"
+                onClick={() => {
+                  setPausedUntil(new Date(Date.now() + 60 * 60000));
+                  setIsInternetPaused(true);
+                  notify.success('Internet paused for 1 hour!');
+                }}
+              >
+                1 hour
+              </button>
+              <button
+                className="btn btn-sm"
+                type="button"
+                onClick={() => {
+                  setPausedUntil(new Date(Date.now() + 24 * 60 * 60000));
+                  setIsInternetPaused(true);
+                  notify.success('Internet paused for 24 hours!');
+                }}
+              >
+                24 hours
+              </button>
+            </div>
           </div>
         </div>
       </div>

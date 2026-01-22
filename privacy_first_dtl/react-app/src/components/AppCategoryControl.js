@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Save, AlertCircle } from 'lucide-react';
+import { Save, AlertCircle, Smartphone } from 'lucide-react';
 import { useNotification } from '../context/NotificationContext';
-import '../styles/Cards.css';
+import '../styles/ChildSettings.css';
 
 const AppCategoryControl = ({ childId }) => {
   const notify = useNotification();
@@ -57,59 +57,56 @@ const AppCategoryControl = ({ childId }) => {
   return (
     <div className="card app-category-control">
       <div className="card-header">
-        <h3>📱 App Category Control</h3>
+        <h3><Smartphone size={20} /> App Category Control</h3>
       </div>
 
-      <form onSubmit={handleSubmit} className="category-form">
-        <div className="category-grid">
-          {Object.entries(categories).map(([category, allowed]) => (
-            <div key={category} className="category-item">
-              <label className="category-label">
-                <input
-                  type="checkbox"
-                  checked={allowed}
-                  onChange={() => handleCategoryChange(category)}
-                  className="category-checkbox"
-                />
-                <span className="category-name">
-                  {categoryDescriptions[category]}
-                </span>
-                <span className={`category-status ${allowed ? 'allowed' : 'blocked'}`}>
-                  {allowed ? '✅ Allowed' : '❌ Blocked'}
-                </span>
-              </label>
-            </div>
-          ))}
-        </div>
+      <div className="card-content">
+        <form onSubmit={handleSubmit} className="category-form">
+          <div className="category-grid">
+            {Object.entries(categories).map(([category, allowed]) => (
+              <div key={category} className="category-item">
+                <label className="category-label">
+                  <input
+                    type="checkbox"
+                    checked={allowed}
+                    onChange={() => handleCategoryChange(category)}
+                    className="category-checkbox"
+                  />
+                  <span className="category-name">
+                    {categoryDescriptions[category]}
+                  </span>
+                  <span className={`category-status ${allowed ? 'allowed' : 'blocked'}`}>
+                    {allowed ? '✅ Allowed' : '❌ Blocked'}
+                  </span>
+                </label>
+              </div>
+            ))}
+          </div>
 
-        <div className="info-box">
-          <AlertCircle size={18} />
-          <p>
-            Allowed categories will be accessible. Blocked categories won't appear in app store.
-          </p>
-        </div>
+          <div className="info-box">
+            <AlertCircle size={18} />
+            <p>
+              Allowed categories will be accessible to your child. Blocked categories won't appear in their app store and cannot be accessed.
+            </p>
+          </div>
 
-        <div className="form-actions">
-          <button 
-            type="submit" 
-            className="btn btn-success"
-            disabled={loading}
-          >
-            <Save size={18} />
-            {loading ? 'Saving...' : 'Save Categories'}
-          </button>
-        </div>
-      </form>
+          <div className="category-summary">
+            <h4>Summary</h4>
+            <p>✅ Allowed: {Object.values(categories).filter(Boolean).length} categories</p>
+            <p>❌ Blocked: {Object.values(categories).filter(v => !v).length} categories</p>
+          </div>
 
-      {/* Summary */}
-      <div className="category-summary">
-        <h4>Summary</h4>
-        <p>
-          Allowed: {Object.values(categories).filter(Boolean).length} categories
-        </p>
-        <p>
-          Blocked: {Object.values(categories).filter(v => !v).length} categories
-        </p>
+          <div className="form-actions">
+            <button 
+              type="submit" 
+              className="btn btn-success"
+              disabled={loading}
+            >
+              <Save size={18} />
+              {loading ? 'Saving...' : 'Save Categories'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

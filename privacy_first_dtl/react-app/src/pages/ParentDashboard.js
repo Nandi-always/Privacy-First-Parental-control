@@ -17,6 +17,7 @@ import InternetControlPanel from '../components/InternetControlPanel';
 import AppCategoryControl from '../components/AppCategoryControl';
 import { childrenService } from '../services/apiService';
 import '../styles/Dashboard.css';
+import '../styles/ChildSettings.css';
 
 const ParentDashboard = () => {
   const navigate = useNavigate();

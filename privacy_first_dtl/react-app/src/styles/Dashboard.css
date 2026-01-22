@@ -683,3 +683,151 @@
     padding: 0;
   }
 }
+
+
+/* Child Dashboard Theme Overrides */
+.child-dashboard {
+  --primary-color: #8b5cf6;
+  --secondary-color: #a78bfa;
+  --bg-secondary: #f0f9ff;
+  --bg-tertiary: #e0f2fe;
+}
+
+.child-dashboard .dashboard-sidebar {
+  background: linear-gradient(180deg, #8b5cf6 0%, #7c3aed 100%);
+  border-right: none;
+  box-shadow: 4px 0 15px rgba(139, 92, 246, 0.1);
+}
+
+.child-dashboard .nav-item:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.child-dashboard .nav-item.active {
+  background: white;
+  color: #7c3aed;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* Digital Wellbeing Tip */
+.wellbeing-tip {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.tip-icon {
+  font-size: 24px;
+  background: white;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.tip-content h4 {
+  margin: 0 0 4px 0;
+  color: #166534;
+  font-size: 16px;
+}
+
+.tip-content p {
+  margin: 0;
+  color: #15803d;
+  font-size: 14px;
+}
+
+/* Transparency Panel */
+.transparency-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.transparency-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.transparency-item.monitored {
+  background: rgba(59, 130, 246, 0.05);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.transparency-item.private {
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.t-icon {
+  font-size: 20px;
+}
+
+.transparency-item strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #374151;
+}
+
+.transparency-item p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+/* Quick Actions */
+.quick-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.action-btn:hover {
+  border-color: #8b5cf6;
+  background: #f5f3ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.action-btn span {
+  font-size: 24px;
+}
+
+.action-btn:last-child {
+  grid-column: span 2;
+  flex-direction: row;
+}
+
+.action-btn:last-child span {
+  font-size: 20px;
+}
+

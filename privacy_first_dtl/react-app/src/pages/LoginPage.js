@@ -17,6 +17,18 @@ const LoginPage = () => {
   const [childName, setChildName] = useState('');
   const [childAge, setChildAge] = useState('');
 
+  // Effect to toggle theme based on role
+  React.useEffect(() => {
+    const loginPage = document.querySelector('.login-page');
+    if (loginPage) {
+      if (role === 'child') {
+        loginPage.classList.add('child-mode');
+      } else {
+        loginPage.classList.remove('child-mode');
+      }
+    }
+  }, [role]);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
@@ -33,7 +45,13 @@ const LoginPage = () => {
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      const payload = { name: childName || 'User', email, password, role };
+      const payload = {
+        name: childName || (role === 'parent' ? 'Parent' : 'Child'),
+        email,
+        password,
+        role,
+        age: role === 'child' ? childAge : undefined
+      };
       const user = await register(payload);
       notify.success('Registration successful!');
       if (user?.role === 'parent') navigate('/parent-dashboard');
@@ -69,7 +87,7 @@ const LoginPage = () => {
             <p className="hero-subtitle">
               Protect your children with privacy-first monitoring, transparent rules, and real-time insights
             </p>
-            
+
             <div className="hero-features">
               <div className="features-grid">
                 <div className="hero-feature">
@@ -129,12 +147,14 @@ const LoginPage = () => {
               {/* Tab Switcher */}
               <div className="auth-tabs">
                 <button
+                  type="button"
                   className={`auth-tab ${isLogin ? 'active' : ''}`}
                   onClick={() => setIsLogin(true)}
                 >
                   Sign In
                 </button>
                 <button
+                  type="button"
                   className={`auth-tab ${!isLogin ? 'active' : ''}`}
                   onClick={() => setIsLogin(false)}
                 >

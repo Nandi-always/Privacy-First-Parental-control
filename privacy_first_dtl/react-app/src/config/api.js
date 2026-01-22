@@ -1,5 +1,5 @@
 // API Configuration for Backend Integration
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
+const API_BASE_URL = window.API_BASE_URL || process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
 
 export const API_ENDPOINTS = {
   // Authentication
@@ -36,7 +36,7 @@ export const API_ENDPOINTS = {
 
   // Location
   LOCATION: {
-    GET_CURRENT: (childId) => `${API_BASE_URL}/location/${childId}`,
+    GET_CURRENT: (childId) => `${API_BASE_URL}/location/${childId}/live`,
     GET_HISTORY: (childId) => `${API_BASE_URL}/location/${childId}/history`,
     UPDATE_GEOFENCE: `${API_BASE_URL}/location/geofence`,
   },
