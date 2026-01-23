@@ -111,7 +111,7 @@
   align-items: center;
   gap: 12px;
   text-decoration: none;
-  color: var(--text-primary);
+  color: #ffffff;
   font-weight: 700;
   font-size: 24px;
   letter-spacing: -0.5px;
@@ -154,11 +154,24 @@
 .hero-container {
   max-width: 1400px;
   margin: 0 auto;
-  display: grid;
-  grid-template-columns: 1fr 450px;
-  gap: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   align-items: center;
   width: 100%;
+}
+
+.centered-tagline {
+  font-size: 56px;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 48px;
+  letter-spacing: -1px;
+  text-align: center;
+  background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .hero-content {
@@ -181,7 +194,7 @@
   font-size: 20px;
   color: var(--text-secondary);
   line-height: 1.6;
-  margin-bottom: 56px;
+  margin-bottom: 0px;
   max-width: 600px;
   border-left: 2px solid var(--accent-primary);
   padding-left: 24px;
@@ -240,6 +253,8 @@
     0 20px 60px -10px rgba(0, 0, 0, 0.5);
   overflow: hidden;
   position: relative;
+  width: 100%;
+  max-width: 480px;
 }
 
 /* Glowing Border Effect for Auth Card */
@@ -308,7 +323,7 @@
 .form-label {
   font-weight: 600;
   font-size: 12px;
-  color: var(--accent-secondary);
+  color: #ffffff !important;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
@@ -322,7 +337,7 @@
 .input-icon {
   position: absolute;
   left: 14px;
-  color: var(--text-secondary);
+  color: #ffffff !important;
   pointer-events: none;
   transition: color 0.3s ease;
 }
@@ -335,7 +350,7 @@
   border-radius: 10px;
   font-family: inherit;
   font-size: 15px;
-  color: var(--text-primary);
+  color: #ffffff !important;
   transition: all 0.3s ease;
 }
 
@@ -351,7 +366,7 @@
 }
 
 .form-input::placeholder {
-  color: #475569;
+  color: #94a3b8;
 }
 
 .password-toggle {
@@ -360,7 +375,7 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--text-secondary);
+  color: #ffffff !important;
   padding: 8px;
   display: flex;
   align-items: center;
@@ -416,26 +431,35 @@
 }
 
 .role-icon {
-  font-size: 28px;
   margin-bottom: 12px;
-  filter: grayscale(100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.3s ease;
 }
 
-.role-option input:checked+.role-content .role-icon {
-  filter: grayscale(0%);
+.role-svg {
+  color: var(--text-secondary);
+  filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.1));
+  transition: all 0.3s ease;
+}
+
+.role-option input:checked+.role-content .role-svg {
+  color: var(--accent-primary);
+  filter: drop-shadow(0 0 10px var(--accent-glow));
   transform: scale(1.1);
 }
 
 .role-label {
   font-weight: 600;
   font-size: 13px;
-  color: var(--text-secondary);
+  color: #ffffff !important;
   transition: color 0.3s ease;
 }
 
 .role-option input:checked+.role-content .role-label {
-  color: var(--text-primary);
+  color: var(--accent-primary) !important;
+  text-shadow: 0 0 10px var(--accent-glow);
 }
 
 /* Submit Button - Neon */
@@ -512,7 +536,7 @@
 
 .footer-text {
   font-size: 13px;
-  color: var(--text-secondary);
+  color: #ffffff;
   margin-bottom: 12px;
 }
 
@@ -533,12 +557,12 @@
 
 .terms-text {
   font-size: 12px;
-  color: #475569;
+  color: #94a3b8;
 }
 
 .terms-text a {
-  color: var(--text-secondary);
-  text-decoration: none;
+  color: #ffffff;
+  text-decoration: underline;
   transition: color 0.3s ease;
 }
 

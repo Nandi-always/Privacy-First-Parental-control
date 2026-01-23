@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, User, ArrowRight, Shield, Eye, EyeOff } from 'lucide-react';
+import { Lock, Mail, User, ArrowRight, Shield, Eye, EyeOff, Users, Baby } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import '../styles/LoginPage.css';
@@ -82,64 +82,8 @@ const LoginPage = () => {
       {/* Hero Section */}
       <section className="login-hero">
         <div className="hero-container">
-          <div className="hero-content">
-            <h1 className="hero-title">Smart Digital Safety for Families</h1>
-            <p className="hero-subtitle">
-              Protect your children with privacy-first monitoring, transparent rules, and real-time insights
-            </p>
+          <h1 className="centered-tagline">Privacy-First Digital Safety</h1>
 
-            <div className="hero-features">
-              <div className="features-grid">
-                <div className="hero-feature">
-                  <div className="feature-icon">🔐</div>
-                  <h3>Authentication & Security</h3>
-                  <p>JWT-based auth, role-based access, session persistence, and secure API tokens.</p>
-                </div>
-
-                <div className="hero-feature">
-                  <div className="feature-icon">👥</div>
-                  <h3>Child Management</h3>
-                  <p>Create and manage child profiles, device info, trust mode, privacy contracts, and age-based rules.</p>
-                </div>
-
-                <div className="hero-feature">
-                  <div className="feature-icon">📱</div>
-                  <h3>App & Website Controls</h3>
-                  <p>Per-app and per-website rules, category-based allow/block, safe-search enforcement, and download approvals.</p>
-                </div>
-
-                <div className="hero-feature">
-                  <div className="feature-icon">⏱️</div>
-                  <h3>Screen Time & Scheduling</h3>
-                  <p>Daily limits, per-app timers, scheduled time slots, pause/resume internet, and notifications on limits.</p>
-                </div>
-
-                <div className="hero-feature">
-                  <div className="feature-icon">📍</div>
-                  <h3>Location & History</h3>
-                  <p>Live location, location history (30 days), most visited places, and address resolution.</p>
-                </div>
-
-                <div className="hero-feature">
-                  <div className="feature-icon">🆘</div>
-                  <h3>Emergency Alerts (SOS)</h3>
-                  <p>Instant SOS with location to parents, acknowledgement flow, and emergency alert history.</p>
-                </div>
-
-                <div className="hero-feature">
-                  <div className="feature-icon">📊</div>
-                  <h3>Reports & Insights</h3>
-                  <p>Daily, weekly and 30-day reports, app usage breakdowns, trends, and real-time activity status.</p>
-                </div>
-
-                <div className="hero-feature">
-                  <div className="feature-icon">🔔</div>
-                  <h3>Notifications & Alerts</h3>
-                  <p>In-app notifications, download alerts, rule-change notifications and socket-ready real-time alerts.</p>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Auth Card */}
           <div className="auth-card">
@@ -216,7 +160,9 @@ const LoginPage = () => {
                         onChange={(e) => setRole(e.target.value)}
                       />
                       <span className="role-content">
-                        <span className="role-icon">👨‍👩‍👧</span>
+                        <span className="role-icon">
+                          <Users size={32} className="role-svg" />
+                        </span>
                         <span className="role-label">Parent</span>
                       </span>
                     </label>
@@ -229,7 +175,9 @@ const LoginPage = () => {
                         onChange={(e) => setRole(e.target.value)}
                       />
                       <span className="role-content">
-                        <span className="role-icon">👧</span>
+                        <span className="role-icon">
+                          <Baby size={32} className="role-svg" />
+                        </span>
                         <span className="role-label">Child</span>
                       </span>
                     </label>
