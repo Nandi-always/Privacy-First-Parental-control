@@ -14,11 +14,11 @@ export const AuthProvider = ({ children }) => {
       try {
         const token = localStorage.getItem('auth_token');
         const userJson = localStorage.getItem('user');
-        
+
         if (token && userJson) {
           const parsedUser = JSON.parse(userJson);
           setUser(parsedUser);
-          
+
           // Verify token is still valid
           try {
             await authService.verifyToken();
@@ -39,17 +39,17 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (email, password, role) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await authService.login(email, password);
+      const response = await authService.login(email, password, role);
       const { token, user: returnedUser } = response.data || response;
-      
+
       localStorage.setItem('auth_token', token);
       localStorage.setItem('user', JSON.stringify(returnedUser));
       setUser(returnedUser);
-      
+
       return returnedUser;
     } catch (err) {
       const errorMsg = err.response?.data?.message || err.message || 'Login failed';
@@ -66,13 +66,13 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       const response = await authService.register(userData);
       const { token, user: returnedUser } = response.data || response;
-      
+
       if (token) {
         localStorage.setItem('auth_token', token);
         localStorage.setItem('user', JSON.stringify(returnedUser));
         setUser(returnedUser);
       }
-      
+
       return returnedUser;
     } catch (err) {
       const errorMsg = err.response?.data?.message || err.message || 'Registration failed';

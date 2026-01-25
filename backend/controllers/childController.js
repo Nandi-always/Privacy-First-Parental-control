@@ -30,10 +30,51 @@ exports.createChild = async (req, res) => {
 // Get all children for the logged-in parent
 exports.getChildren = async (req, res) => {
   try {
-    const children = await Child.find({ parent: req.user.id });
+    console.log('📋 Fetching children for parent:', req.user.id);
+
+    // Get Child records (from Child model)
+    const childRecords = await Child.find({ parent: req.user.id });
+    console.log(`   Found ${childRecords.length} Child records`);
+
+    // Get User accounts with role='child' linked to this parent
+    const User = require("../models/User");
+    const childUsers = await User.find({
+      role: 'child',
+      parentId: req.user.id
+    }).select('-password'); // exclude password field
+
+    console.log(`   Found ${childUsers.length} User accounts with role=child`);
+
+    // Combine both - Child records take priority, then add unique User accounts
+    const childMap = new Map();
+
+    // Add Child records first
+    childRecords.forEach(child => {
+      childMap.set(child.email, child);
+    });
+
+    // Add User accounts that don't have corresponding Child records
+    childUsers.forEach(user => {
+      if (!childMap.has(user.email)) {
+        // Convert User to Child-like format for frontend compatibility
+        childMap.set(user.email, {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          age: user.age,
+          parent: req.user.id,
+          status: 'online', // default status
+          fromUserModel: true
+        });
+      }
+    });
+
+    const children = Array.from(childMap.values());
+    console.log(`   Returning ${children.length} total children`);
+
     res.status(200).json(children);
   } catch (err) {
-    console.error(err);
+    console.error('❌ Error fetching children:', err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };

@@ -35,14 +35,23 @@ apiClient.interceptors.response.use(
 );
 
 export const authService = {
-  login: (email, password) =>
-    apiClient.post(API_ENDPOINTS.AUTH.LOGIN, { email, password }),
+  login: (email, password, role) =>
+    apiClient.post(API_ENDPOINTS.AUTH.LOGIN, { email, password, role }),
   register: (data) =>
     apiClient.post(API_ENDPOINTS.AUTH.REGISTER, data),
   logout: () =>
     apiClient.post(API_ENDPOINTS.AUTH.LOGOUT),
   verifyToken: () =>
     apiClient.get(API_ENDPOINTS.AUTH.VERIFY_TOKEN),
+};
+
+export const notificationsService = {
+  getAll: () =>
+    apiClient.get('/notifications'),
+  send: (data) =>
+    apiClient.post('/notifications/send', data),
+  markAsRead: (id) =>
+    apiClient.put(`/notifications/${id}/read`),
 };
 
 export const childrenService = {

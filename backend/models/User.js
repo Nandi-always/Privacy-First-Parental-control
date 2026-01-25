@@ -5,7 +5,9 @@ const UserSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, enum: ["parent", "child"], default: "parent" }
+  role: { type: String, enum: ["parent", "child"], default: "parent" },
+  age: { type: Number },
+  parentId: { type: mongoose.Schema.Types.ObjectId, ref: "User" }
 });
 
 UserSchema.pre("save", async function () {

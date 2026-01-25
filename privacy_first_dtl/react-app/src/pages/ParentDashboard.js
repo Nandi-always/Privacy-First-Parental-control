@@ -65,46 +65,46 @@ const ParentDashboard = () => {
 
   return (
     <div className="dashboard parent-dashboard">
-      <ParentHeader user={user} onLogout={handleLogout} />
-      <AddChildModal 
-        isOpen={showAddChildModal} 
+      <ParentHeader user={user} childrenList={children} onLogout={handleLogout} />
+      <AddChildModal
+        isOpen={showAddChildModal}
         onClose={() => setShowAddChildModal(false)}
         onSuccess={handleAddChildSuccess}
       />
-      
+
       <div className="dashboard-container">
         {/* Sidebar Navigation */}
         <aside className="dashboard-sidebar">
           <nav className="nav-menu">
-            <button 
+            <button
               className={`nav-item ${activeTab === 'overview' ? 'active' : ''}`}
               onClick={() => setActiveTab('overview')}
             >
               <BarChart3 size={20} />
               <span>Overview</span>
             </button>
-            <button 
+            <button
               className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
               onClick={() => setActiveTab('settings')}
             >
               <Settings size={20} />
               <span>Settings</span>
             </button>
-            <button 
+            <button
               className={`nav-item ${activeTab === 'rules' ? 'active' : ''}`}
               onClick={() => setActiveTab('rules')}
             >
               <Lock size={20} />
               <span>App Rules</span>
             </button>
-            <button 
+            <button
               className={`nav-item ${activeTab === 'locations' ? 'active' : ''}`}
               onClick={() => setActiveTab('locations')}
             >
               <MapPin size={20} />
               <span>Locations</span>
             </button>
-            <button 
+            <button
               className={`nav-item ${activeTab === 'alerts' ? 'active' : ''}`}
               onClick={() => setActiveTab('alerts')}
             >
@@ -161,7 +161,7 @@ const ParentDashboard = () => {
                 <div className="tab-content overview-tab">
                   <div className="content-grid">
                     {/* Screen Time Widget */}
-                    <ScreenTimeCard 
+                    <ScreenTimeCard
                       child={selectedChild}
                       onEdit={() => notify.info('Edit screen time functionality coming soon')}
                     />

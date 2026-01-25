@@ -9,7 +9,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: function(origin, callback) {
+  origin: function (origin, callback) {
     // Allow all origins for development
     callback(null, true);
   },
@@ -26,6 +26,7 @@ app.use("/api/emergency", require("./routes/emergencyRoutes"));
 app.use("/api/location", require("./routes/locationRoutes"));
 app.use("/api/downloads", require("./routes/downloadAlertRoutes"));
 app.use("/api/reports", require("./routes/reportRoutes"));
+app.use("/api/notifications", require("./routes/notificationRoutes"));
 
 // Test route
 app.get("/", (req, res) => {

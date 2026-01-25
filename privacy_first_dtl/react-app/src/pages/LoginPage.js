@@ -16,9 +16,10 @@ const LoginPage = () => {
   const [role, setRole] = useState('parent');
   const [childName, setChildName] = useState('');
   const [childAge, setChildAge] = useState('');
+  const [parentEmail, setParentEmail] = useState('');
 
-  // Effect to toggle theme based on role
-  React.useEffect(() => {
+  // Effect to toggle theme based on role - DISABLED to keep consistent dark theme
+  /* React.useEffect(() => {
     const loginPage = document.querySelector('.login-page');
     if (loginPage) {
       if (role === 'child') {
@@ -27,13 +28,15 @@ const LoginPage = () => {
         loginPage.classList.remove('child-mode');
       }
     }
-  }, [role]);
+  }, [role]); */
+
 
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const user = await login(email, password);
+      const user = await login(email, password, role);
       notify.success('Login successful!');
+      // Route based on backend's confirmed role (after validation)
       if (user.role === 'parent') navigate('/parent-dashboard');
       else navigate('/child-dashboard');
     } catch (err) {
@@ -50,7 +53,8 @@ const LoginPage = () => {
         email,
         password,
         role,
-        age: role === 'child' ? childAge : undefined
+        age: role === 'child' ? childAge : undefined,
+        parentEmail: role === 'child' ? parentEmail : undefined
       };
       const user = await register(payload);
       notify.success('Registration successful!');
@@ -69,7 +73,7 @@ const LoginPage = () => {
         <div className="header-container">
           <div className="header-brand">
             <Shield size={32} className="brand-icon" />
-            <span className="brand-name">SafeGuard</span>
+            <span className="brand-name">Privacy First</span>
           </div>
           <nav className="header-nav">
             <a href="#features">Features</a>
@@ -147,7 +151,10 @@ const LoginPage = () => {
                   </div>
                 </div>
 
-                {/* Role Selection */}
+
+
+
+                {/* Role Selection - Shows on login and registration */}
                 <div className="form-group">
                   <label className="form-label">Account Type</label>
                   <div className="role-options">
@@ -161,9 +168,13 @@ const LoginPage = () => {
                       />
                       <span className="role-content">
                         <span className="role-icon">
-                          <Users size={32} className="role-svg" />
+                          {/* Simple Parent Icon */}
+                          <svg className="role-svg simple-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                          </svg>
                         </span>
-                        <span className="role-label">Parent</span>
+                        <span className="role-label">PARENT</span>
                       </span>
                     </label>
                     <label className="role-option">
@@ -176,9 +187,15 @@ const LoginPage = () => {
                       />
                       <span className="role-content">
                         <span className="role-icon">
-                          <Baby size={32} className="role-svg" />
+                          {/* Simple Child Icon */}
+                          <svg className="role-svg simple-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                            <line x1="9" y1="9" x2="9.01" y2="9" />
+                            <line x1="15" y1="9" x2="15.01" y2="9" />
+                          </svg>
                         </span>
-                        <span className="role-label">Child</span>
+                        <span className="role-label">CHILD</span>
                       </span>
                     </label>
                   </div>
@@ -211,10 +228,24 @@ const LoginPage = () => {
                         max="18"
                         value={childAge}
                         onChange={(e) => setChildAge(e.target.value)}
-                        required
+                        required={!isLogin && role === 'child'}
                         className="form-input"
-                        style={{ width: '100%', padding: '10px 12px' }}
                       />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Parent's Email (to link accounts)</label>
+                      <div className="input-field">
+                        <Mail size={18} className="input-icon" />
+                        <input
+                          type="email"
+                          placeholder="parent@example.com"
+                          value={parentEmail}
+                          onChange={(e) => setParentEmail(e.target.value)}
+                          required={!isLogin && role === 'child'}
+                          className="form-input"
+                        />
+                      </div>
                     </div>
                   </>
                 )}
@@ -235,6 +266,7 @@ const LoginPage = () => {
                     </div>
                   </div>
                 )}
+
 
                 {/* Submit Button */}
                 <button
@@ -276,9 +308,9 @@ const LoginPage = () => {
               </form>
             </div>
           </div>
-        </div>
-      </section>
-    </div>
+        </div >
+      </section >
+    </div >
   );
 };
 
