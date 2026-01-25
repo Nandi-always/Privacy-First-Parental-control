@@ -1,5 +1,6 @@
-const AppRule = require("../models/AppRule");
 const Notification = require("../models/Notification");
+const Child = require("../models/Child");
+const User = require("../models/User");
 
 // Create an app rule
 exports.createAppRule = async (req, res) => {
@@ -19,13 +20,23 @@ exports.createAppRule = async (req, res) => {
 
     await appRule.save();
 
+    // We must find the actual parent of this child
+    const child = await Child.findById(childId) || await User.findById(childId);
+    if (!child) return res.status(404).json({ message: "Child not found" });
+    const parentId = child.parent || child.parentId;
+    if (!parentId) return res.status(404).json({ message: "Parent not found for this child" });
+
+    // Update parent in rule
+    appRule.parent = parentId;
+    await appRule.save();
+
     // Send notification to child
     const notif = new Notification({
-      child: childId,
-      parent: req.user.id,
+      senderId: req.user.id,
+      receiverId: childId,
       type: "app_rule",
       message: `Parent added new app rule for ${appName}`,
-      read: false
+      isRead: false
     });
     await notif.save();
 
@@ -69,13 +80,13 @@ exports.updateAppRule = async (req, res) => {
 
     await rule.save();
 
-    // Notify child about rule change
+    // Send notification to child
     const notif = new Notification({
-      child: rule.child,
-      parent: req.user.id,
+      senderId: req.user.id,
+      receiverId: rule.child,
       type: "rule_update",
       message: `Parent updated ${appName} rule`,
-      read: false
+      isRead: false
     });
     await notif.save();
 

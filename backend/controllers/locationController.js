@@ -1,5 +1,22 @@
 const Location = require("../models/Location");
 const Child = require("../models/Child");
+const Notification = require("../models/Notification");
+
+// Haversine formula to calculate distance between two points in meters
+const getDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371e3; // Earth radius in meters
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) *
+    Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
+};
 
 // Mock location data for testing
 const mockLocations = [
@@ -21,6 +38,17 @@ exports.updateLocation = async (req, res) => {
     const { childId } = req.params;
     const { latitude, longitude, address, accuracy } = req.body;
 
+    // Fetch child to get parent ID and geofence settings
+    const User = require("../models/User");
+    const child = await Child.findById(childId) || await User.findById(childId);
+    if (!child) {
+      return res.status(404).json({ message: "Child identification missing" });
+    }
+    const parentId = child.parent || child.parentId;
+    if (!parentId) {
+      return res.status(404).json({ message: "Parent not found for this child" });
+    }
+
     // Remove old live location
     await Location.updateMany(
       { child: childId, isLive: true },
@@ -30,7 +58,7 @@ exports.updateLocation = async (req, res) => {
     // Create new live location
     const location = new Location({
       child: childId,
-      parent: req.user.id,
+      parent: child.parent, // Use parent ID from child document
       latitude,
       longitude,
       address,
@@ -39,7 +67,101 @@ exports.updateLocation = async (req, res) => {
     });
 
     await location.save();
+
+    // Send notification for manual/live update
+    const checkinNotif = new Notification({
+      senderId: childId,
+      receiverId: parentId,
+      message: `${child.name} reported their current location: ${address || 'Coordinates provided'}`,
+      type: "alert",
+      isRead: false
+    });
+    await checkinNotif.save();
+
+    // Geofence Check (Privacy-First Event Based)
+    const currentTime = new Date();
+    const currentDay = currentTime.toLocaleDateString('en-US', { weekday: 'long' });
+    const currentHourMin = `${String(currentTime.getHours()).padStart(2, '0')}:${String(currentTime.getMinutes()).padStart(2, '0')}`;
+
+    if (child && child.geofences && child.geofences.length > 0) {
+      const updatedGeofences = [...child.geofences];
+      let changesMade = false;
+
+      for (let i = 0; i < updatedGeofences.length; i++) {
+        const zone = updatedGeofences[i];
+        if (!zone.enabled) continue;
+
+        // 1. Time-Bound Check
+        const withinDay = !zone.days || zone.days.length === 0 || zone.days.includes(currentDay);
+        const withinTime = (!zone.startTime || currentHourMin >= zone.startTime) &&
+          (!zone.endTime || currentHourMin <= zone.endTime);
+
+        if (withinDay && withinTime) {
+          const distance = getDistance(latitude, longitude, zone.latitude, zone.longitude);
+          const isInside = distance <= (zone.radius || 200);
+          const newStatus = isInside ? "inside" : "outside";
+
+          // 2. Event-Based Alert (Only if status changed)
+          if (zone.lastStatus !== "unknown" && zone.lastStatus !== newStatus) {
+            const eventType = newStatus === "inside" ? "Entered" : "Left";
+            const message = `PV-EVENT: ${child.name} ${eventType} ${zone.name} zone.`;
+
+            // Create notification for parent
+            const notification = new Notification({
+              senderId: childId,
+              receiverId: parentId,
+              message: message,
+              type: "alert",
+              isRead: false
+            });
+            await notification.save();
+            console.log(`🔔 Privacy Event: ${message}`);
+          }
+
+          zone.lastStatus = newStatus;
+          changesMade = true;
+        } else {
+          // Outside monitoring window, reset status
+          if (zone.lastStatus !== "unknown") {
+            zone.lastStatus = "unknown";
+            changesMade = true;
+          }
+        }
+      }
+
+      if (changesMade) {
+        child.geofences = updatedGeofences;
+        await child.save();
+      }
+    }
+
     res.status(201).json({ message: "Location updated", location });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+// Update Geofence Settings
+exports.updateGeofence = async (req, res) => {
+  try {
+    const { childId, geofence } = req.body;
+
+    if (!childId || !geofence) {
+      return res.status(400).json({ message: "Missing childId or geofence data" });
+    }
+
+    const updatedChild = await Child.findOneAndUpdate(
+      { _id: childId, parent: req.user.id },
+      { geofence },
+      { new: true }
+    );
+
+    if (!updatedChild) {
+      return res.status(404).json({ message: "Child not found or unauthorized" });
+    }
+
+    res.status(200).json({ message: "Geofence updated successfully", geofence: updatedChild.geofence });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error", error: err.message });

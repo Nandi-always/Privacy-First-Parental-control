@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, User, ArrowRight, Shield, Eye, EyeOff, Users, Baby } from 'lucide-react';
+import { Lock, Mail, User, ArrowRight, Shield, Eye, EyeOff, Users, Baby, MapPin, Clock, ShieldCheck, Zap, BookOpen, ClipboardList } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
+import Modal from '../components/Modal';
 import '../styles/LoginPage.css';
 
 const LoginPage = () => {
@@ -17,6 +18,9 @@ const LoginPage = () => {
   const [childName, setChildName] = useState('');
   const [childAge, setChildAge] = useState('');
   const [parentEmail, setParentEmail] = useState('');
+
+  // Modals state
+  const [showFeaturesModal, setShowFeaturesModal] = useState(false);
 
   // Effect to toggle theme based on role - DISABLED to keep consistent dark theme
   /* React.useEffect(() => {
@@ -75,10 +79,8 @@ const LoginPage = () => {
             <Shield size={32} className="brand-icon" />
             <span className="brand-name">Privacy First</span>
           </div>
-          <nav className="header-nav">
-            <a href="#features">Features</a>
-            <a href="#about">About</a>
-            <a href="#contact">Contact</a>
+          <nav className="header-nav" style={{ display: 'flex', gap: '24px' }}>
+            <button className="nav-link-btn" onClick={() => setShowFeaturesModal(true)}>Features</button>
           </nav>
         </div>
       </header>
@@ -225,7 +227,7 @@ const LoginPage = () => {
                         type="number"
                         placeholder="Enter age"
                         min="5"
-                        max="18"
+                        max="23"
                         value={childAge}
                         onChange={(e) => setChildAge(e.target.value)}
                         required={!isLogin && role === 'child'}
@@ -308,9 +310,64 @@ const LoginPage = () => {
               </form>
             </div>
           </div>
-        </div >
-      </section >
-    </div >
+        </div>
+      </section>
+
+      {/* Features Modal */}
+      <Modal
+        isOpen={showFeaturesModal}
+        onClose={() => setShowFeaturesModal(false)}
+        title="Nandi: Key Project Features"
+        size="lg"
+      >
+        <div className="features-modal-content">
+          <div className="feature-grid">
+            <div className="feature-item-v2">
+              <div className="feature-icon-wrapper">
+                <MapPin size={24} className="classic-icon" />
+              </div>
+              <h3>Privacy-First Geofencing</h3>
+              <p>Safe zones (Home, School) trigger alerts to parents without invasive live tracking. Locations are only shared during SOS events.</p>
+            </div>
+            <div className="feature-item-v2">
+              <div className="feature-icon-wrapper">
+                <Clock size={24} className="classic-icon" />
+              </div>
+              <h3>Smart Screen Time</h3>
+              <p>Collaborative time management where children can see their limits and request extensions, fostering healthy digital habits.</p>
+            </div>
+            <div className="feature-item-v2">
+              <div className="feature-icon-wrapper">
+                <Shield size={24} className="classic-icon" />
+              </div>
+              <h3>Monitoring Transparency</h3>
+              <p>No hidden spies. Children see exactly what data is shared with parents and what stays private (messages, camera, etc.).</p>
+            </div>
+            <div className="feature-item-v2">
+              <div className="feature-icon-wrapper">
+                <Zap size={24} className="classic-icon" />
+              </div>
+              <h3>Emergency SOS</h3>
+              <p>One-tap emergency alert system that notifies parents instantly with GPS coordinates when the child feels unsafe.</p>
+            </div>
+            <div className="feature-item-v2">
+              <div className="feature-icon-wrapper">
+                <ShieldCheck size={24} className="classic-icon" />
+              </div>
+              <h3>Privacy Center</h3>
+              <p>Educational portal for children to understand their data rights and learn how the system protects their digital identity.</p>
+            </div>
+            <div className="feature-item-v2">
+              <div className="feature-icon-wrapper">
+                <ClipboardList size={24} className="classic-icon" />
+              </div>
+              <h3>Mutual Rule Agreements</h3>
+              <p>Parents and children agree on rules together, creating a digital contract that builds trust through shared commitment.</p>
+            </div>
+          </div>
+        </div>
+      </Modal>
+    </div>
   );
 };
 

@@ -17,8 +17,19 @@ const ChildSchema = new mongoose.Schema({
     entertainment: { type: Boolean, default: true, timeLimit: 120 }, // minutes
     social: { type: Boolean, default: false, timeLimit: 60 },
     games: { type: Boolean, default: true, timeLimit: 90 },
-    communication: { type: Boolean, default: true, timeLimit: null }
   },
+  geofences: [{
+    name: { type: String, required: true },
+    latitude: { type: Number, required: true },
+    longitude: { type: Number, required: true },
+    address: { type: String },
+    radius: { type: Number, default: 200 }, // meters
+    startTime: { type: String }, // e.g., "08:00"
+    endTime: { type: String },   // e.g., "15:00"
+    days: [{ type: String }],    // e.g., ["Monday", "Tuesday"]
+    lastStatus: { type: String, enum: ["inside", "outside", "unknown"], default: "unknown" },
+    enabled: { type: Boolean, default: true }
+  }],
   createdAt: { type: Date, default: Date.now }
 });
 

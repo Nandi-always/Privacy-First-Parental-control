@@ -40,12 +40,20 @@
   gap: 12px !important;
 }
 
+/* Dashboards (White header) - Dark text */
+.dashboard-header .header-brand .brand-name,
+.dashboard-header .brand-name {
+  color: #1f2937 !important;
+}
+
+/* Landing Page (Dark header) - White text */
+.login-header .header-brand .brand-name,
+.login-header .brand-name,
 .header-brand .brand-name,
-.brand-name,
-span.brand-name {
+.brand-name {
   font-size: 20px !important;
   font-weight: 700 !important;
-  color: #000000 !important;
+  color: #ffffff !important;
   margin: 0 !important;
   opacity: 1 !important;
   visibility: visible !important;

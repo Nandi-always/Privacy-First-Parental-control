@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const EmergencyAlertSchema = new mongoose.Schema({
-  child: { type: mongoose.Schema.Types.ObjectId, ref: "Child", required: true },
+  child: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   parent: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   latitude: { type: Number, required: true },
   longitude: { type: Number, required: true },

@@ -92,13 +92,15 @@ export const locationService = {
     apiClient.get(API_ENDPOINTS.LOCATION.GET_CURRENT(childId)),
   getHistory: (childId) =>
     apiClient.get(API_ENDPOINTS.LOCATION.GET_HISTORY(childId)),
+  updateLocation: (childId, data) =>
+    apiClient.post(API_ENDPOINTS.LOCATION.UPDATE(childId), data),
   updateGeofence: (data) =>
     apiClient.post(API_ENDPOINTS.LOCATION.UPDATE_GEOFENCE, data),
 };
 
 export const emergencyService = {
   sendSOS: (childId, location) =>
-    apiClient.post(API_ENDPOINTS.EMERGENCY.SEND_SOS, { childId, location }),
+    apiClient.post(API_ENDPOINTS.EMERGENCY.SEND_SOS(childId), location),
   getAlerts: (childId) =>
     apiClient.get(API_ENDPOINTS.EMERGENCY.GET_ALERTS(childId)),
   acknowledge: (id) =>

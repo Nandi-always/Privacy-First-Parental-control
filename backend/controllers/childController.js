@@ -122,11 +122,11 @@ exports.updateChild = async (req, res) => {
     // Send notification to child about rule changes
     if (trustMode !== undefined || privacyMode !== undefined) {
       const notif = new Notification({
-        child: childId,
-        parent: req.user.id,
+        senderId: req.user.id,
+        receiverId: childId,
         type: "rule_update",
         message: `Parent updated your rules and settings`,
-        read: false
+        isRead: false
       });
       await notif.save();
     }

@@ -1,5 +1,6 @@
-const ScreenTime = require("../models/ScreenTime");
 const Notification = require("../models/Notification");
+const Child = require("../models/Child");
+const User = require("../models/User");
 
 // Log app usage
 exports.logAppUsage = async (req, res) => {
@@ -105,13 +106,18 @@ exports.pauseInternetAccess = async (req, res) => {
 
     await screenTime.save();
 
+    // We must find the actual parent of this child
+    const child = await Child.findById(childId) || await User.findById(childId);
+    if (!child) return res.status(404).json({ message: "Child not found" });
+    const parentId = child.parent || child.parentId;
+
     // Notify child
     const notif = new Notification({
-      child: childId,
-      parent: req.user.id,
+      senderId: req.user.id,
+      receiverId: childId,
       type: "internet_pause",
       message: isPaused ? "Your internet access has been paused" : "Your internet access has been resumed",
-      read: false
+      isRead: false
     });
     await notif.save();
 
@@ -134,12 +140,16 @@ exports.setDailyLimit = async (req, res) => {
     child.dailyScreenTimeLimit = limit;
     await child.save();
 
+    const childRecord = await Child.findById(childId) || await User.findById(childId);
+    if (!childRecord) return res.status(404).json({ message: "Child not found" });
+    const parentId = childRecord.parent || childRecord.parentId;
+
     const notif = new Notification({
-      child: childId,
-      parent: req.user.id,
+      senderId: req.user.id,
+      receiverId: childId,
       type: "limit_update",
       message: `Parent set daily screen time limit to ${limit} minutes`,
-      read: false
+      isRead: false
     });
     await notif.save();
 

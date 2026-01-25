@@ -26,7 +26,7 @@ const AddChildModal = ({ isOpen, onClose, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.name || !formData.age) {
       notify.error('Please fill in all required fields');
       return;
@@ -71,7 +71,7 @@ const AddChildModal = ({ isOpen, onClose, onSuccess }) => {
             name="age"
             placeholder="Enter age"
             min="5"
-            max="18"
+            max="23"
             value={formData.age}
             onChange={handleChange}
             required

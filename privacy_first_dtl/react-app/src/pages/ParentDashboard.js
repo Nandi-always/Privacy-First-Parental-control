@@ -150,7 +150,6 @@ const ParentDashboard = () => {
                         <h4>{child.name}</h4>
                         <p>Age {child.age || '—'}</p>
                       </div>
-                      <div className={`status-badge ${child.status || 'unknown'}`}>{child.status || 'unknown'}</div>
                     </div>
                   ))
                 )}

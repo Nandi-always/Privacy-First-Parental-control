@@ -726,19 +726,18 @@
 }
 
 .child-dashboard .dashboard-sidebar {
-  background: linear-gradient(180deg, #8b5cf6 0%, #7c3aed 100%);
+  /* Inherit dark theme from parent */
   border-right: none;
-  box-shadow: 4px 0 15px rgba(139, 92, 246, 0.1);
+  box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
 }
 
 .child-dashboard .nav-item:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .child-dashboard .nav-item.active {
-  background: white;
-  color: #7c3aed;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  /* Use the default purple gradient */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 /* Digital Wellbeing Tip */

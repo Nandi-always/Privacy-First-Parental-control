@@ -38,12 +38,13 @@ export const API_ENDPOINTS = {
   LOCATION: {
     GET_CURRENT: (childId) => `${API_BASE_URL}/location/${childId}/live`,
     GET_HISTORY: (childId) => `${API_BASE_URL}/location/${childId}/history`,
+    UPDATE: (childId) => `${API_BASE_URL}/location/${childId}/update`,
     UPDATE_GEOFENCE: `${API_BASE_URL}/location/geofence`,
   },
 
   // Emergency
   EMERGENCY: {
-    SEND_SOS: `${API_BASE_URL}/emergency/sos`,
+    SEND_SOS: (childId) => `${API_BASE_URL}/emergency/${childId}/sos`,
     GET_ALERTS: (childId) => `${API_BASE_URL}/emergency/${childId}/alerts`,
     ACKNOWLEDGE: (id) => `${API_BASE_URL}/emergency/${id}/acknowledge`,
   },

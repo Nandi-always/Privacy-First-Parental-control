@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Clock, MapPin, BookOpen, AlertCircle, Home } from 'lucide-react';
+import { Shield, Clock, MapPin, BookOpen, AlertCircle, Home, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import ChildHeader from '../components/ChildHeader';
 import PrivacyScoreCard from '../components/PrivacyScoreCard';
 import ScreenTimeWidget from '../components/ScreenTimeWidget';
+import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
+import { locationService, emergencyService } from '../services/apiService';
+import MAP_CONFIG from '../config/mapsConfig';
 import '../styles/Dashboard.css';
+import '../styles/Cards.css';
 
 const ChildDashboard = () => {
   const navigate = useNavigate();
@@ -15,6 +19,12 @@ const ChildDashboard = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [childData, setChildData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [reportLocation, setReportLocation] = useState(null);
+  const [reporting, setReporting] = useState(false);
+  const [sendingSOS, setSendingSOS] = useState(false);
+
+  const { isLoaded } = useJsApiLoader(MAP_CONFIG);
+  const isMapKeyPlaceholder = MAP_CONFIG.isPlaceholder;
 
   useEffect(() => {
     // Initialize child data from user or fetch from API
@@ -36,8 +46,25 @@ const ChildDashboard = () => {
     navigate('/');
   };
 
-  const handleSOS = () => {
-    notify.warning('🆘 SOS Alert sent to parents with your location!');
+  const handleSOS = async () => {
+    try {
+      setSendingSOS(true);
+      const childId = user._id || user.id;
+
+      // Get current location if possible, otherwise send empty (backend handles it)
+      await emergencyService.sendSOS(childId, {
+        latitude: reportLocation?.latitude || 0,
+        longitude: reportLocation?.longitude || 0,
+        message: 'Child triggered SOS Emergency Alert'
+      });
+
+      notify.warning('🆘 SOS Alert sent to parents with your location!');
+    } catch (err) {
+      console.error('Failed to send SOS', err);
+      notify.error('Failed to send SOS alert. Please try calling your parents directly!');
+    } finally {
+      setSendingSOS(false);
+    }
   };
 
   const handleAgreeRule = () => {
@@ -46,6 +73,39 @@ const ChildDashboard = () => {
 
   const handleDeclineRule = () => {
     notify.info('Rule decline recorded');
+  };
+
+  const handleMapClick = (e) => {
+    setReportLocation({
+      latitude: e.latLng.lat(),
+      longitude: e.latLng.lng()
+    });
+  };
+
+  const handleReportLocation = async () => {
+    if (!reportLocation) {
+      notify.error('Please select a location on the map first');
+      return;
+    }
+
+    try {
+      setReporting(true);
+      const childId = user._id || user.id;
+      await locationService.updateLocation(childId, {
+        latitude: reportLocation.latitude,
+        longitude: reportLocation.longitude,
+        address: 'Manual Check-in',
+        accuracy: 5
+      });
+
+      notify.success('Location reported successfully!');
+      setChildData(prev => ({ ...prev, location: 'Manual Check-in' }));
+    } catch (err) {
+      console.error('Failed to report location', err);
+      notify.error('Failed to report location to parents');
+    } finally {
+      setReporting(false);
+    }
   };
 
   if (loading || !childData) {
@@ -102,9 +162,13 @@ const ChildDashboard = () => {
             </button>
           </nav>
 
-          <button className="sos-btn" onClick={handleSOS}>
+          <button
+            className={`sos-btn ${sendingSOS ? 'loading' : ''}`}
+            onClick={handleSOS}
+            disabled={sendingSOS}
+          >
             <span className="sos-text">🆘 SOS</span>
-            <span>Emergency Alert</span>
+            <span>{sendingSOS ? 'Sending...' : 'Emergency Alert'}</span>
           </button>
         </aside>
 
@@ -251,12 +315,93 @@ const ChildDashboard = () => {
 
           {activeTab === 'location' && (
             <div className="tab-content">
-              <h2>📍 My Location</h2>
-              <div className="card">
-                <div className="map-placeholder">
-                  <MapPin size={64} />
-                  <p>Map integration coming soon</p>
-                  <p style={{ fontSize: '0.9em', color: '#999' }}>Current location: {childData.location}</p>
+              <h2>📍 Location Transparency</h2>
+              <div className="card transparency-dashboard">
+                <div className="status-banner info">
+                  <Shield size={24} />
+                  <div>
+                    <h4>Privacy-First Geofencing Active</h4>
+                    <p>Live tracking is disabled. Parents only see when you enter or leave safe zones.</p>
+                  </div>
+                </div>
+
+                <div className="active-zones-list">
+                  <h3>Monitored Zones</h3>
+                  {childData.geofences && childData.geofences.length > 0 ? (
+                    childData.geofences.map((zone, idx) => (
+                      <div key={idx} className="zone-transparency-item">
+                        <div className="zone-info">
+                          <MapPin size={18} />
+                          <strong>{zone.name}</strong>
+                          <span className="zone-radius">({zone.radius}m radius)</span>
+                        </div>
+                        <div className="zone-time">
+                          <Clock size={16} />
+                          <span>{zone.startTime || 'Always'} - {zone.endTime || 'Always'}</span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="no-zones-msg">No active safe zones defined.</p>
+                  )}
+                </div>
+
+                <div className="manual-report-section" style={{ marginTop: '30px' }}>
+                  <h3>Test: Report Specific Location</h3>
+                  <p className="instruction-text">Enter coordinates manually to test the Parent's range alert.</p>
+
+                  <div className="manual-coord-entry" style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                    <input
+                      type="number"
+                      step="0.0001"
+                      placeholder="Latitude"
+                      className="zone-input"
+                      style={{ flex: 1 }}
+                      onChange={(e) => setReportLocation(prev => ({ ...prev, latitude: parseFloat(e.target.value), longitude: prev?.longitude || 77.5946 }))}
+                    />
+                    <input
+                      type="number"
+                      step="0.0001"
+                      placeholder="Longitude"
+                      className="zone-input"
+                      style={{ flex: 1 }}
+                      onChange={(e) => setReportLocation(prev => ({ ...prev, longitude: parseFloat(e.target.value), latitude: prev?.latitude || 12.9716 }))}
+                    />
+                  </div>
+
+                  <p className="instruction-text">Or pick on map (if enabled):</p>
+                  <div className="map-container" style={{ height: '200px', marginBottom: '15px', borderRadius: '12px', overflow: 'hidden' }}>
+                    {isLoaded && !isMapKeyPlaceholder ? (
+                      <GoogleMap
+                        mapContainerStyle={{ width: '100%', height: '100%' }}
+                        center={reportLocation ? { lat: reportLocation.latitude, lng: reportLocation.longitude } : { lat: 12.9716, lng: 77.5946 }}
+                        zoom={13}
+                        onClick={handleMapClick}
+                      >
+                        {reportLocation && <Marker position={{ lat: reportLocation.latitude, lng: reportLocation.longitude }} />}
+                      </GoogleMap>
+                    ) : (
+                      <div className="map-placeholder" style={{
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: '#f3f4f6',
+                        color: '#6b7280',
+                        textAlign: 'center',
+                        padding: '20px'
+                      }}>
+                        <div>
+                          <MapPin size={32} style={{ marginBottom: '10px', opacity: 0.5 }} />
+                          <p>Interactive map is disabled because no valid API key was found.</p>
+                          <p style={{ fontSize: '12px' }}>Please add your Google Maps API key to the .env file.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <button className="btn-primary report-btn" onClick={handleReportLocation} disabled={reporting || !reportLocation}>
+                    {reporting ? 'Sending Check-in...' : 'Send Manual Report'}
+                  </button>
                 </div>
               </div>
             </div>
