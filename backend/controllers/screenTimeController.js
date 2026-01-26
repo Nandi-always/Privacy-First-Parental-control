@@ -140,13 +140,13 @@ exports.setDailyLimit = async (req, res) => {
     child.dailyScreenTimeLimit = limit;
     await child.save();
 
-    const childRecord = await Child.findById(childId) || await User.findById(childId);
-    if (!childRecord) return res.status(404).json({ message: "Child not found" });
-    const parentId = childRecord.parent || childRecord.parentId;
+    // Resolve the actual User ID for the child to ensure notification delivery
+    const childUser = await User.findOne({ email: child.email });
+    const notificationTargetId = childUser ? childUser._id : childId;
 
     const notif = new Notification({
       senderId: req.user.id,
-      receiverId: childId,
+      receiverId: notificationTargetId,
       type: "limit_update",
       message: `Parent set daily screen time limit to ${limit} minutes`,
       isRead: false
@@ -154,6 +154,88 @@ exports.setDailyLimit = async (req, res) => {
     await notif.save();
 
     res.status(200).json({ message: "Daily limit updated", limit });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+// Get all screen time settings for a child
+exports.getScreenTimeSettings = async (req, res) => {
+  try {
+    const { childId } = req.params;
+    const child = await Child.findById(childId);
+
+    if (!child) return res.status(404).json({ message: "Child not found" });
+    if (child.parent.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    const settings = {
+      dailyLimit: child.dailyScreenTimeLimit,
+      warningThreshold: child.warningThreshold,
+      enforceBedtime: child.enforceBedtime,
+      bedtimeStart: child.bedtimeStart,
+      bedtimeEnd: child.bedtimeEnd,
+      schoolHours: child.schoolHours,
+      schoolStart: child.schoolStart,
+      schoolEnd: child.schoolEnd,
+      allowBreak: child.allowBreak,
+      breakDuration: child.breakDuration,
+      breakInterval: child.breakInterval
+    };
+
+    res.status(200).json(settings);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+// Update all screen time settings for a child
+exports.updateScreenTimeSettings = async (req, res) => {
+  try {
+    const { childId } = req.params;
+    const settings = req.body;
+
+    const child = await Child.findById(childId);
+    if (!child) return res.status(404).json({ message: "Child not found" });
+    if (child.parent.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    // Update fields if they are provided in the request body
+    if (settings.dailyLimit !== undefined) child.dailyScreenTimeLimit = settings.dailyLimit;
+    if (settings.warningThreshold !== undefined) child.warningThreshold = settings.warningThreshold;
+    if (settings.enforceBedtime !== undefined) child.enforceBedtime = settings.enforceBedtime;
+    if (settings.bedtimeStart !== undefined) child.bedtimeStart = settings.bedtimeStart;
+    if (settings.bedtimeEnd !== undefined) child.bedtimeEnd = settings.bedtimeEnd;
+    if (settings.schoolHours !== undefined) child.schoolHours = settings.schoolHours;
+    if (settings.schoolStart !== undefined) child.schoolStart = settings.schoolStart;
+    if (settings.schoolEnd !== undefined) child.schoolEnd = settings.schoolEnd;
+    if (settings.allowBreak !== undefined) child.allowBreak = settings.allowBreak;
+    if (settings.breakDuration !== undefined) child.breakDuration = settings.breakDuration;
+    if (settings.breakInterval !== undefined) child.breakInterval = settings.breakInterval;
+
+    await child.save();
+
+    await child.save();
+
+    // Resolve the actual User ID for the child to ensure notification delivery
+    const childUser = await User.findOne({ email: child.email });
+    const notificationTargetId = childUser ? childUser._id : childId;
+
+    // Notify child about settings update
+    const notif = new Notification({
+      senderId: req.user.id,
+      receiverId: notificationTargetId,
+      type: "rule_update",
+      message: "Your screen time settings have been updated by your parent",
+      isRead: false
+    });
+    await notif.save();
+
+    res.status(200).json({ message: "Screen time settings updated successfully", settings: child });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error", error: err.message });

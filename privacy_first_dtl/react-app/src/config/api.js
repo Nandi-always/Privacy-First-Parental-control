@@ -21,7 +21,8 @@ export const API_ENDPOINTS = {
 
   // Screen Time
   SCREEN_TIME: {
-    GET: (childId) => `${API_BASE_URL}/screentime/${childId}`,
+    GET: (childId) => `${API_BASE_URL}/screentime/${childId}/settings`,
+    UPDATE: (childId) => `${API_BASE_URL}/screentime/${childId}/settings`,
     SET_LIMIT: `${API_BASE_URL}/screentime/limit`,
     GET_USAGE: (childId) => `${API_BASE_URL}/screentime/${childId}/usage`,
   },

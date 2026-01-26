@@ -18,6 +18,17 @@ const ChildSchema = new mongoose.Schema({
     social: { type: Boolean, default: false, timeLimit: 60 },
     games: { type: Boolean, default: true, timeLimit: 90 },
   },
+  // Screen Time Settings
+  warningThreshold: { type: Number, default: 30 },
+  enforceBedtime: { type: Boolean, default: true },
+  bedtimeStart: { type: String, default: "22:00" },
+  bedtimeEnd: { type: String, default: "06:00" },
+  schoolHours: { type: Boolean, default: true },
+  schoolStart: { type: String, default: "08:00" },
+  schoolEnd: { type: String, default: "15:00" },
+  allowBreak: { type: Boolean, default: false },
+  breakDuration: { type: Number, default: 5 },
+  breakInterval: { type: Number, default: 30 },
   geofences: [{
     name: { type: String, required: true },
     latitude: { type: Number, required: true },

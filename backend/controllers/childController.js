@@ -121,9 +121,14 @@ exports.updateChild = async (req, res) => {
 
     // Send notification to child about rule changes
     if (trustMode !== undefined || privacyMode !== undefined) {
+      // Resolve the actual User ID for the child to ensure notification delivery
+      const User = require("../models/User");
+      const childUser = await User.findOne({ email: child.email });
+      const notificationTargetId = childUser ? childUser._id : childId;
+
       const notif = new Notification({
         senderId: req.user.id,
-        receiverId: childId,
+        receiverId: notificationTargetId,
         type: "rule_update",
         message: `Parent updated your rules and settings`,
         isRead: false
@@ -177,13 +182,18 @@ exports.updateAppCategories = async (req, res) => {
 
     await child.save();
 
+    // Resolve the actual User ID for the child to ensure notification delivery
+    const User = require("../models/User");
+    const childUser = await User.findOne({ email: child.email });
+    const notificationTargetId = childUser ? childUser._id : childId;
+
     // Send notification about category change
     const notif = new Notification({
-      child: childId,
-      parent: req.user.id,
+      senderId: req.user.id,
+      receiverId: notificationTargetId,
       type: "category_update",
       message: `Parent updated app category restrictions`,
-      read: false
+      isRead: false
     });
     await notif.save();
 

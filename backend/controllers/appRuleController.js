@@ -1,20 +1,33 @@
 const Notification = require("../models/Notification");
 const Child = require("../models/Child");
 const User = require("../models/User");
+const AppRule = require("../models/AppRule");
 
 // Create an app rule
 exports.createAppRule = async (req, res) => {
   try {
-    const { childId } = req.params;
-    const { appName, appCategory, isBlocked, timeLimit, allowedTimeSlots } = req.body;
+    const { childId, child: childInBody, appName, appPackage, action, timeLimit, allowedStartTime, allowedEndTime, allowedDays } = req.body;
+    const targetChildId = childId || childInBody || req.params.childId;
+
+    if (!targetChildId) {
+      return res.status(400).json({ message: "Child ID is required" });
+    }
+
+    // Map frontend data to back-end schema
+    const isBlocked = action === 'BLOCK';
+    const allowedTimeSlots = allowedDays ? allowedDays.map(day => ({
+      day,
+      startTime: allowedStartTime || "09:00",
+      endTime: allowedEndTime || "21:00"
+    })) : [];
 
     const appRule = new AppRule({
-      child: childId,
+      child: targetChildId,
       parent: req.user.id,
       appName,
-      appCategory,
+      appCategory: "educational", // Default category to satisfy enum
       isBlocked,
-      timeLimit,
+      timeLimit: isBlocked ? null : timeLimit,
       allowedTimeSlots
     });
 
@@ -30,10 +43,14 @@ exports.createAppRule = async (req, res) => {
     appRule.parent = parentId;
     await appRule.save();
 
+    // Resolve the actual User ID for the child to ensure notification delivery
+    const childUser = await User.findOne({ email: child.email });
+    const notificationTargetId = childUser ? childUser._id : childId;
+
     // Send notification to child
     const notif = new Notification({
       senderId: req.user.id,
-      receiverId: childId,
+      receiverId: notificationTargetId,
       type: "app_rule",
       message: `Parent added new app rule for ${appName}`,
       isRead: false
@@ -80,10 +97,18 @@ exports.updateAppRule = async (req, res) => {
 
     await rule.save();
 
+    // Resolve the actual User ID for the child to ensure notification delivery
+    const childRecord = await Child.findById(rule.child);
+    let notificationTargetId = rule.child;
+    if (childRecord) {
+      const childUser = await User.findOne({ email: childRecord.email });
+      if (childUser) notificationTargetId = childUser._id;
+    }
+
     // Send notification to child
     const notif = new Notification({
       senderId: req.user.id,
-      receiverId: rule.child,
+      receiverId: notificationTargetId,
       type: "rule_update",
       message: `Parent updated ${appName} rule`,
       isRead: false

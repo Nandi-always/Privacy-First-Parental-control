@@ -70,6 +70,8 @@ export const childrenService = {
 export const screenTimeService = {
   get: (childId) =>
     apiClient.get(API_ENDPOINTS.SCREEN_TIME.GET(childId)),
+  update: (childId, data) =>
+    apiClient.put(API_ENDPOINTS.SCREEN_TIME.UPDATE(childId), data),
   setLimit: (childId, limit) =>
     apiClient.post(API_ENDPOINTS.SCREEN_TIME.SET_LIMIT, { childId, limit }),
   getUsage: (childId) =>

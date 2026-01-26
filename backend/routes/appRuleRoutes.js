@@ -9,10 +9,10 @@ const {
 } = require("../controllers/appRuleController");
 
 // Create app rule for a child
-router.post("/:childId/rules", authMiddleware, createAppRule);
+router.post("/", authMiddleware, createAppRule);
 
 // Get all rules for a child
-router.get("/:childId/rules", authMiddleware, getAppRules);
+router.get("/:childId", authMiddleware, getAppRules);
 
 // Update an app rule
 router.put("/rules/:ruleId", authMiddleware, updateAppRule);

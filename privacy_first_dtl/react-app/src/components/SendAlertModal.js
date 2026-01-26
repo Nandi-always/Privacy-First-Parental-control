@@ -9,6 +9,24 @@ const SendAlertModal = ({ isOpen, onClose, user, childrenList }) => {
     const [receiverId, setReceiverId] = useState(user?.role === 'child' ? user.parentId : (childrenList?.[0]?._id || ''));
     const [loading, setLoading] = useState(false);
 
+    // Sync receiverId when childrenList loads or changes
+    React.useEffect(() => {
+        if (user?.role === 'parent' && childrenList?.length > 0 && !receiverId) {
+            setReceiverId(childrenList[0]._id || childrenList[0].id);
+        }
+    }, [childrenList, user, receiverId]);
+
+    // Reset form when modal opens
+    React.useEffect(() => {
+        if (isOpen) {
+            setMessage('');
+            if (user?.role === 'parent' && childrenList?.length > 0) {
+                setReceiverId(childrenList[0]._id || childrenList[0].id);
+            }
+        }
+    }, [isOpen, childrenList, user]);
+
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
