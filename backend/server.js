@@ -27,6 +27,9 @@ app.use("/api/location", require("./routes/locationRoutes"));
 app.use("/api/downloads", require("./routes/downloadAlertRoutes"));
 app.use("/api/reports", require("./routes/reportRoutes"));
 app.use("/api/notifications", require("./routes/notificationRoutes"));
+app.use("/api/website-rules", require("./routes/websiteRuleRoutes"));
+app.use("/api/app-approvals", require("./routes/appApprovalRoutes"));
+app.use("/api/risky-activity", require("./routes/riskyActivityRoutes"));
 
 // Test route
 app.get("/", (req, res) => {
@@ -40,5 +43,5 @@ mongoose
   .catch(err => console.error(err));
 
 // Start server
-const PORT = 5001;
+const PORT = 5003;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

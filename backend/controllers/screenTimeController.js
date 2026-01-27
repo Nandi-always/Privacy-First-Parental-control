@@ -173,6 +173,8 @@ exports.getScreenTimeSettings = async (req, res) => {
 
     const settings = {
       dailyLimit: child.dailyScreenTimeLimit,
+      weekdayLimit: child.weekdayScreenTimeLimit,
+      weekendLimit: child.weekendScreenTimeLimit,
       warningThreshold: child.warningThreshold,
       enforceBedtime: child.enforceBedtime,
       bedtimeStart: child.bedtimeStart,
@@ -180,6 +182,9 @@ exports.getScreenTimeSettings = async (req, res) => {
       schoolHours: child.schoolHours,
       schoolStart: child.schoolStart,
       schoolEnd: child.schoolEnd,
+      homeworkHoursEnabled: child.homeworkHoursEnabled,
+      homeworkStart: child.homeworkStart,
+      homeworkEnd: child.homeworkEnd,
       allowBreak: child.allowBreak,
       breakDuration: child.breakDuration,
       breakInterval: child.breakInterval
@@ -206,6 +211,8 @@ exports.updateScreenTimeSettings = async (req, res) => {
 
     // Update fields if they are provided in the request body
     if (settings.dailyLimit !== undefined) child.dailyScreenTimeLimit = settings.dailyLimit;
+    if (settings.weekdayLimit !== undefined) child.weekdayScreenTimeLimit = settings.weekdayLimit;
+    if (settings.weekendLimit !== undefined) child.weekendScreenTimeLimit = settings.weekendLimit;
     if (settings.warningThreshold !== undefined) child.warningThreshold = settings.warningThreshold;
     if (settings.enforceBedtime !== undefined) child.enforceBedtime = settings.enforceBedtime;
     if (settings.bedtimeStart !== undefined) child.bedtimeStart = settings.bedtimeStart;
@@ -213,6 +220,9 @@ exports.updateScreenTimeSettings = async (req, res) => {
     if (settings.schoolHours !== undefined) child.schoolHours = settings.schoolHours;
     if (settings.schoolStart !== undefined) child.schoolStart = settings.schoolStart;
     if (settings.schoolEnd !== undefined) child.schoolEnd = settings.schoolEnd;
+    if (settings.homeworkHoursEnabled !== undefined) child.homeworkHoursEnabled = settings.homeworkHoursEnabled;
+    if (settings.homeworkStart !== undefined) child.homeworkStart = settings.homeworkStart;
+    if (settings.homeworkEnd !== undefined) child.homeworkEnd = settings.homeworkEnd;
     if (settings.allowBreak !== undefined) child.allowBreak = settings.allowBreak;
     if (settings.breakDuration !== undefined) child.breakDuration = settings.breakDuration;
     if (settings.breakInterval !== undefined) child.breakInterval = settings.breakInterval;

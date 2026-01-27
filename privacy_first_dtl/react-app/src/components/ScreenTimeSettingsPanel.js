@@ -8,14 +8,19 @@ const ScreenTimeSettingsPanel = ({ childId }) => {
   const notify = useNotification();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    dailyLimit: 180, // 3 hours
-    warningThreshold: 30, // 30 minutes left
+    dailyLimit: 180, // 3 hours (fallback)
+    weekdayLimit: 120, // 2 hours for Mon-Fri
+    weekendLimit: 180, // 3 hours for Sat-Sun
+    warningThreshold: 10, // 10 minutes left
     enforceBedtime: true,
     bedtimeStart: '22:00',
     bedtimeEnd: '06:00',
     schoolHours: true,
     schoolStart: '08:00',
     schoolEnd: '15:00',
+    homeworkHoursEnabled: false,
+    homeworkStart: '16:00',
+    homeworkEnd: '19:00',
     allowBreak: false,
     breakDuration: 5,
     breakInterval: 30
@@ -78,18 +83,32 @@ const ScreenTimeSettingsPanel = ({ childId }) => {
         <form onSubmit={handleSubmit} className="settings-form">
           {/* Daily Limit Section */}
           <div className="settings-section">
-            <h4>Daily Limit</h4>
+            <h4>📅 Daily Screen Time Limits</h4>
+
             <div className="form-group">
-              <label>Daily Screen Time Limit (minutes)</label>
+              <label>Weekday Limit (Monday - Friday, minutes)</label>
               <input
                 type="number"
-                name="dailyLimit"
-                value={formData.dailyLimit}
+                name="weekdayLimit"
+                value={formData.weekdayLimit}
                 onChange={handleChange}
                 min="30"
                 step="15"
               />
-              <small className="current-time">Current: {Math.floor(formData.dailyLimit / 60)}h {formData.dailyLimit % 60}m</small>
+              <small className="current-time">Current: {Math.floor(formData.weekdayLimit / 60)}h {formData.weekdayLimit % 60}m</small>
+            </div>
+
+            <div className="form-group">
+              <label>Weekend Limit (Saturday - Sunday, minutes)</label>
+              <input
+                type="number"
+                name="weekendLimit"
+                value={formData.weekendLimit}
+                onChange={handleChange}
+                min="30"
+                step="15"
+              />
+              <small className="current-time">Current: {Math.floor(formData.weekendLimit / 60)}h {formData.weekendLimit % 60}m</small>
             </div>
 
             <div className="form-group">
@@ -102,6 +121,7 @@ const ScreenTimeSettingsPanel = ({ childId }) => {
                 min="5"
                 step="5"
               />
+              <small className="current-time">Child will be warned when {formData.warningThreshold} minutes remain</small>
             </div>
           </div>
 
@@ -141,6 +161,48 @@ const ScreenTimeSettingsPanel = ({ childId }) => {
                   />
                 </div>
               </div>
+            )}
+          </div>
+
+          {/* Homework Hours Section */}
+          <div className="settings-section">
+            <div className="section-header">
+              <h4><BookOpen size={18} /> Homework Hours</h4>
+              <label className="toggle">
+                <input
+                  type="checkbox"
+                  name="homeworkHoursEnabled"
+                  checked={formData.homeworkHoursEnabled}
+                  onChange={handleChange}
+                />
+                <span>{formData.homeworkHoursEnabled ? 'ON' : 'OFF'}</span>
+              </label>
+            </div>
+
+            {formData.homeworkHoursEnabled && (
+              <>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Homework Starts</label>
+                    <input
+                      type="time"
+                      name="homeworkStart"
+                      value={formData.homeworkStart}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Homework Ends</label>
+                    <input
+                      type="time"
+                      name="homeworkEnd"
+                      value={formData.homeworkEnd}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+                <small className="info-text">📚 Educational apps will be allowed during homework hours regardless of other restrictions</small>
+              </>
             )}
           </div>
 
@@ -234,8 +296,8 @@ const ScreenTimeSettingsPanel = ({ childId }) => {
 
           {/* Submit Button */}
           <div className="form-actions">
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               className="btn btn-success"
               disabled={loading}
             >

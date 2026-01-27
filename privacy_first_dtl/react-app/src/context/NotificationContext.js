@@ -70,7 +70,7 @@ const NotificationContainer = ({ notifications, onRemove }) => {
             {getIcon(notification.type)}
           </div>
           <div className="notification-message">{notification.message}</div>
-          <button 
+          <button
             className="notification-close"
             onClick={() => onRemove(notification.id)}
           >

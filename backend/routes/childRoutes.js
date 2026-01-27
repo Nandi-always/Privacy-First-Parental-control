@@ -1,13 +1,14 @@
 const express = require("express");
 const router = express.Router();
-const { 
-  createChild, 
-  getChildren, 
+const {
+  createChild,
+  getChildren,
   getChildById,
-  updateChild, 
+  updateChild,
   deleteChild,
-  updateAppCategories 
+  updateAppCategories
 } = require("../controllers/childController");
+const { getDeviceStatus } = require("../middleware/enforcementMiddleware");
 const authMiddleware = require("../middleware/authMiddleware");
 
 // Create a child
@@ -24,6 +25,9 @@ router.put("/:childId", authMiddleware, updateChild);
 
 // Delete child
 router.delete("/:childId", authMiddleware, deleteChild);
+
+// Get device status (lock state, restrictions, warnings)
+router.get("/:childId/status", authMiddleware, getDeviceStatus);
 
 // Update app categories
 router.put("/:childId/categories", authMiddleware, updateAppCategories);

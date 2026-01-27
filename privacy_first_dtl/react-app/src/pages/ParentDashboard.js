@@ -15,7 +15,10 @@ import ScreenTimeSettingsPanel from '../components/ScreenTimeSettingsPanel';
 import AppApprovalManager from '../components/AppApprovalManager';
 import InternetControlPanel from '../components/InternetControlPanel';
 import AppCategoryControl from '../components/AppCategoryControl';
-import { childrenService } from '../services/apiService';
+import RiskyActivityPanel from '../components/RiskyActivityPanel';
+import ActivityLogsViewer from '../components/ActivityLogsViewer';
+import EmergencyTracker from '../components/EmergencyTracker';
+import { childrenService, emergencyService } from '../services/apiService';
 import '../styles/Dashboard.css';
 import '../styles/ChildSettings.css';
 
@@ -26,8 +29,37 @@ const ParentDashboard = () => {
   const [children, setChildren] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+
   const [selectedChild, setSelectedChild] = useState(null);
   const [showAddChildModal, setShowAddChildModal] = useState(false);
+  const [activeEmergency, setActiveEmergency] = useState(null);
+
+  // Poll for emergency alerts
+  useEffect(() => {
+    const checkEmergencies = async () => {
+      if (!selectedChild?._id && !selectedChild?.id) return;
+      try {
+        const childId = selectedChild._id || selectedChild.id;
+        const res = await emergencyService.getAlerts(childId);
+        // Find unresolved alert
+        const emergency = res.data?.find(a => !a.resolved);
+        if (emergency) {
+          setActiveEmergency(emergency);
+        } else if (activeEmergency) {
+          // Clear if resolved elsewhere
+          setActiveEmergency(null);
+        }
+      } catch (err) {
+        console.error('Failed to check emergencies', err);
+      }
+    };
+
+    if (selectedChild) {
+      checkEmergencies();
+      const interval = setInterval(checkEmergencies, 5000); // Check every 5s
+      return () => clearInterval(interval);
+    }
+  }, [selectedChild, activeEmergency]);
 
   const fetchChildren = async () => {
     try {
@@ -72,6 +104,16 @@ const ParentDashboard = () => {
         onSuccess={handleAddChildSuccess}
       />
 
+      {/* Emergency Overlay */}
+      {activeEmergency && (
+        <div style={{ position: 'fixed', bottom: '20px', right: '20px', zIndex: 9999, width: '400px', maxWidth: '90vw' }}>
+          <EmergencyTracker
+            alert={activeEmergency}
+            onMarkSafe={() => setActiveEmergency(null)}
+          />
+        </div>
+      )}
+
       <div className="dashboard-container">
         {/* Sidebar Navigation */}
         <aside className="dashboard-sidebar">
@@ -110,6 +152,13 @@ const ParentDashboard = () => {
             >
               <AlertCircle size={20} />
               <span>Alerts</span>
+            </button>
+            <button
+              className={`nav-item ${activeTab === 'logs' ? 'active' : ''}`}
+              onClick={() => setActiveTab('logs')}
+            >
+              <BarChart3 size={20} />
+              <span>Activity Logs</span>
             </button>
           </nav>
 
@@ -166,27 +215,13 @@ const ParentDashboard = () => {
                     />
 
                     {/* Activity Report */}
+                    {/* ActivityLogsViewer displays detailed logs, ActivityReport is summary */}
                     <ActivityReport child={selectedChild} />
 
-                    {/* Alerts Summary */}
+                    {/* Risky Activity Summary */}
                     <div className="card alerts-summary">
-                      <h3>Recent Alerts</h3>
-                      <div className="alerts-list">
-                        <div className="alert-item warning">
-                          <AlertCircle size={18} />
-                          <div>
-                            <p className="alert-title">Screen Time Approaching</p>
-                            <p className="alert-time">10 min left • {selectedChild?.name || 'Unknown'}</p>
-                          </div>
-                        </div>
-                        <div className="alert-item info">
-                          <AlertCircle size={18} />
-                          <div>
-                            <p className="alert-title">App Installed</p>
-                            <p className="alert-time">YouTube • {selectedChild?.name || 'Unknown'}</p>
-                          </div>
-                        </div>
-                      </div>
+                      <h3>Risky Activity Status</h3>
+                      <RiskyActivityPanel childId={selectedChild?._id || selectedChild?.id} />
                     </div>
                   </div>
                 </div>
@@ -225,6 +260,16 @@ const ParentDashboard = () => {
                 <div className="tab-content">
                   <h2>Alerts & Notifications</h2>
                   <AlertsPanel child={selectedChild} />
+                  <div style={{ marginTop: '24px' }}>
+                    <RiskyActivityPanel childId={selectedChild?._id || selectedChild?.id} />
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'logs' && (
+                <div className="tab-content">
+                  <h2>Activity Logs</h2>
+                  <ActivityLogsViewer childId={selectedChild?._id || selectedChild?.id} />
                 </div>
               )}
             </>

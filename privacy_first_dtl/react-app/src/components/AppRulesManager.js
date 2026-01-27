@@ -115,7 +115,7 @@ const AppRulesManager = ({ childId }) => {
     <div className="card app-rules-manager">
       <div className="card-header">
         <h3>📱 App Rules</h3>
-        <button 
+        <button
           className="btn btn-primary"
           onClick={() => setShowForm(!showForm)}
         >
@@ -213,8 +213,8 @@ const AppRulesManager = ({ childId }) => {
             <button type="submit" className="btn btn-success">
               {editingRule ? 'Update Rule' : 'Create Rule'}
             </button>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="btn btn-secondary"
               onClick={resetForm}
             >
@@ -236,7 +236,7 @@ const AppRulesManager = ({ childId }) => {
                 <div className="rule-header">
                   {rule.action === 'BLOCK' ? <Ban size={18} /> : <Clock size={18} />}
                   <h4>{rule.appName}</h4>
-                  <span className={`rule-badge ${rule.action.toLowerCase()}`}>
+                  <span className={`rule-badge ${rule.action ? rule.action.toLowerCase() : ''}`}>
                     {rule.action === 'BLOCK' ? '🚫 Blocked' : '⏱️ Limited'}
                   </span>
                 </div>
@@ -247,14 +247,14 @@ const AppRulesManager = ({ childId }) => {
                 )}
               </div>
               <div className="rule-actions">
-                <button 
+                <button
                   className="btn-icon edit"
                   onClick={() => handleEdit(rule)}
                   title="Edit"
                 >
                   <Edit2 size={16} />
                 </button>
-                <button 
+                <button
                   className="btn-icon delete"
                   onClick={() => handleDelete(rule._id)}
                   title="Delete"

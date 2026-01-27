@@ -11,15 +11,21 @@ const ChildSchema = new mongoose.Schema({
   role: { type: String, enum: ["child"], default: "child" },
   trustMode: { type: Boolean, default: false },
   privacyMode: { type: Boolean, default: false },
-  dailyScreenTimeLimit: { type: Number, default: 480 }, // minutes
+  dailyScreenTimeLimit: { type: Number, default: 480 }, // minutes (fallback for backward compatibility)
+  weekdayScreenTimeLimit: { type: Number, default: 120 }, // minutes (2 hours for Mon-Fri)
+  weekendScreenTimeLimit: { type: Number, default: 180 }, // minutes (3 hours for Sat-Sun)
   appCategories: {
     educational: { type: Boolean, default: true, unrestricted: true },
     entertainment: { type: Boolean, default: true, timeLimit: 120 }, // minutes
     social: { type: Boolean, default: false, timeLimit: 60 },
     games: { type: Boolean, default: true, timeLimit: 90 },
   },
+  // Homework Hours Settings
+  homeworkHoursEnabled: { type: Boolean, default: false },
+  homeworkStart: { type: String, default: "16:00" }, // 4 PM
+  homeworkEnd: { type: String, default: "19:00" }, // 7 PM
   // Screen Time Settings
-  warningThreshold: { type: Number, default: 30 },
+  warningThreshold: { type: Number, default: 10 }, // minutes (warning when 10 min remain)
   enforceBedtime: { type: Boolean, default: true },
   bedtimeStart: { type: String, default: "22:00" },
   bedtimeEnd: { type: String, default: "06:00" },

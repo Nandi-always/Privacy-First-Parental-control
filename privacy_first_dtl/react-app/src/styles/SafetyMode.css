@@ -1,0 +1,247 @@
+.safety-mode-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10000;
+    background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+}
+
+.safety-mode-overlay {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.safety-mode-content {
+    background: white;
+    border-radius: 24px;
+    padding: 40px;
+    max-width: 600px;
+    width: 100%;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
+    animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(40px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.safety-header {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.pulse-icon {
+    color: #dc2626;
+    animation: pulse 2s ease-in-out infinite;
+    margin-bottom: 16px;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+}
+
+.safety-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 8px 0;
+}
+
+.safety-header p {
+    font-size: 16px;
+    color: #6b7280;
+    margin: 0;
+}
+
+.safety-status-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.status-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    border-radius: 12px;
+    border: 2px solid;
+}
+
+.status-card.alert-sent {
+    background: #fef3c7;
+    border-color: #fcd34d;
+    color: #92400e;
+}
+
+.status-card.parent-called {
+    background: #dbeafe;
+    border-color: #93c5fd;
+    color: #1e40af;
+}
+
+.status-card.tracking-active {
+    background: #d1fae5;
+    border-color: #6ee7b7;
+    color: #065f46;
+}
+
+.status-card strong {
+    display: block;
+    font-size: 16px;
+    margin-bottom: 4px;
+}
+
+.status-card p {
+    margin: 0;
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+.spin {
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.restrictions-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: #f0fdf4;
+    padding: 16px 20px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    border-left: 4px solid #16a34a;
+}
+
+.restrictions-notice strong {
+    display: block;
+    color: #065f46;
+    margin-bottom: 4px;
+}
+
+.restrictions-notice p {
+    margin: 0;
+    font-size: 14px;
+    color: #047857;
+}
+
+.emergency-info {
+    background: #f9fafb;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+}
+
+.emergency-info h3 {
+    font-size: 18px;
+    color: #1f2937;
+    margin: 0 0 12px 0;
+}
+
+.emergency-info ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.emergency-info li {
+    padding: 8px 0;
+    color: #374151;
+    font-size: 15px;
+}
+
+.mark-safe-btn {
+    width: 100%;
+    background: #16a34a;
+    color: white;
+    border: none;
+    padding: 16px 32px;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.mark-safe-btn:hover {
+    background: #15803d;
+    transform: translateY(-2px);
+}
+
+.emergency-contact {
+    text-align: center;
+    padding-top: 24px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.emergency-contact p {
+    font-size: 14px;
+    color: #6b7280;
+    margin: 0 0 12px 0;
+}
+
+.emergency-number {
+    display: inline-block;
+    background: #dc2626;
+    color: white;
+    padding: 12px 32px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+@media (max-width: 640px) {
+    .safety-mode-content {
+        padding: 24px;
+    }
+
+    .safety-header h1 {
+        font-size: 22px;
+    }
+
+    .status-card {
+        padding: 12px 16px;
+    }
+}
