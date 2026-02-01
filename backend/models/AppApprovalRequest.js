@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const AppApprovalRequestSchema = new mongoose.Schema({
-    child: { type: mongoose.Schema.Types.ObjectId, ref: "Child", required: true },
+    child: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     parent: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     appName: { type: String, required: true },
     appPackage: { type: String },

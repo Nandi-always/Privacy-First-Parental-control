@@ -15,7 +15,7 @@ const {
 router.post("/:childId/log", authMiddleware, logAppUsage);
 
 // Get daily screen time
-router.get("/:childId/daily", authMiddleware, getDailyScreenTime);
+router.get("/:childId/usage", authMiddleware, getDailyScreenTime);
 
 // Get screen time history
 router.get("/:childId/history", authMiddleware, getScreenTimeHistory);

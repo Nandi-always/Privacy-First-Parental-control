@@ -1,6 +1,19 @@
+const ScreenTime = require("../models/ScreenTime");
 const Notification = require("../models/Notification");
 const Child = require("../models/Child");
 const User = require("../models/User");
+
+// Helper to resolve childId (can be from Child or User collection) to User ID
+async function resolveToUserId(childId) {
+  try {
+    const child = await Child.findById(childId);
+    if (child) {
+      const user = await User.findOne({ email: child.email });
+      return user ? user._id : childId;
+    }
+  } catch (e) { }
+  return childId;
+}
 
 // Log app usage
 exports.logAppUsage = async (req, res) => {
@@ -8,14 +21,15 @@ exports.logAppUsage = async (req, res) => {
     const { childId } = req.params;
     const { appName, timeSpent, category, date } = req.body;
 
+    const userId = await resolveToUserId(childId);
     let screenTime = await ScreenTime.findOne({
-      child: childId,
+      child: userId,
       date: new Date(date).toDateString()
     });
 
     if (!screenTime) {
       screenTime = new ScreenTime({
-        child: childId,
+        child: userId,
         parent: req.user.id,
         date: new Date(date),
         appUsage: []
@@ -45,13 +59,21 @@ exports.getDailyScreenTime = async (req, res) => {
     const { childId } = req.params;
     const { date } = req.query;
 
+    const userId = await resolveToUserId(childId);
     const screenTime = await ScreenTime.findOne({
-      child: childId,
+      child: userId,
       parent: req.user.id,
       date: new Date(date || new Date()).toDateString()
     });
 
-    res.status(200).json(screenTime || { totalTime: 0, appUsage: [] });
+    const child = await Child.findById(childId) || await User.findById(childId);
+    const limit = child?.dailyScreenTimeLimit || 480;
+
+    res.status(200).json({
+      ...(screenTime?.toObject() || { totalTime: 0, appUsage: [] }),
+      dailyLimit: limit,
+      minutesToday: screenTime?.totalTime || 0
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error", error: err.message });
@@ -67,8 +89,9 @@ exports.getScreenTimeHistory = async (req, res) => {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
+    const userId = await resolveToUserId(childId);
     const history = await ScreenTime.find({
-      child: childId,
+      child: userId,
       parent: req.user.id,
       date: { $gte: startDate }
     }).sort({ date: -1 });
@@ -87,14 +110,15 @@ exports.pauseInternetAccess = async (req, res) => {
     const { isPaused } = req.body;
 
     const today = new Date().toDateString();
+    const userId = await resolveToUserId(childId);
     let screenTime = await ScreenTime.findOne({
-      child: childId,
+      child: userId,
       date: today
     });
 
     if (!screenTime) {
       screenTime = new ScreenTime({
-        child: childId,
+        child: userId,
         parent: req.user.id,
         date: new Date(today),
         isPaused

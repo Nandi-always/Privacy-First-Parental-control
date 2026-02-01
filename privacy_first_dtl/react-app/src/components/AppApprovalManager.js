@@ -18,7 +18,10 @@ const AppApprovalManager = ({ childId }) => {
       const res = await appApprovalsService.getRequests(filter);
       // Filter by childId if provided
       const filteredRequests = childId
-        ? (res.data || []).filter(r => r.child?._id === childId || r.child === childId)
+        ? (res.data || []).filter(r => {
+          const rChildId = r.child?._id || r.child || '';
+          return rChildId.toString() === childId.toString();
+        })
         : (res.data || []);
       setRequests(filteredRequests);
     } catch (err) {

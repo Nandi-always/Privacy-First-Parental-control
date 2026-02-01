@@ -25,7 +25,8 @@ exports.createAppRule = async (req, res) => {
       child: targetChildId,
       parent: req.user.id,
       appName,
-      appCategory: "educational", // Default category to satisfy enum
+      appPackage,
+      appCategory: "other", // Default category
       isBlocked,
       timeLimit: isBlocked ? null : timeLimit,
       allowedTimeSlots
@@ -33,19 +34,15 @@ exports.createAppRule = async (req, res) => {
 
     await appRule.save();
 
-    // We must find the actual parent of this child
-    const child = await Child.findById(childId) || await User.findById(childId);
-    if (!child) return res.status(404).json({ message: "Child not found" });
-    const parentId = child.parent || child.parentId;
-    if (!parentId) return res.status(404).json({ message: "Parent not found for this child" });
+    // Resolve the actual child user if needed for notifications
+    const childRecord = await Child.findById(targetChildId) || await User.findById(targetChildId);
+    let notificationTargetId = targetChildId;
 
-    // Update parent in rule
-    appRule.parent = parentId;
-    await appRule.save();
-
-    // Resolve the actual User ID for the child to ensure notification delivery
-    const childUser = await User.findOne({ email: child.email });
-    const notificationTargetId = childUser ? childUser._id : childId;
+    if (childRecord) {
+      // If child has an email, find their User record to send notification
+      const childUser = await User.findOne({ email: childRecord.email });
+      if (childUser) notificationTargetId = childUser._id;
+    }
 
     // Send notification to child
     const notif = new Notification({
@@ -59,7 +56,7 @@ exports.createAppRule = async (req, res) => {
 
     res.status(201).json({ message: "App rule created", appRule });
   } catch (err) {
-    console.error(err);
+    console.error('Error creating app rule:', err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
@@ -80,7 +77,7 @@ exports.getAppRules = async (req, res) => {
 exports.updateAppRule = async (req, res) => {
   try {
     const { ruleId } = req.params;
-    const { appName, appCategory, isBlocked, timeLimit, allowedTimeSlots } = req.body;
+    const { appName, appPackage, action, isBlocked: isBlockedDirect, timeLimit, allowedTimeSlots, allowedDays, allowedStartTime, allowedEndTime } = req.body;
 
     const rule = await AppRule.findById(ruleId);
     if (!rule) return res.status(404).json({ message: "Rule not found" });
@@ -88,13 +85,28 @@ exports.updateAppRule = async (req, res) => {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
-    if (appName !== undefined) rule.appName = appName;
-    if (appCategory !== undefined) rule.appCategory = appCategory;
-    if (isBlocked !== undefined) rule.isBlocked = isBlocked;
-    if (timeLimit !== undefined) rule.timeLimit = timeLimit;
-    if (allowedTimeSlots !== undefined) rule.allowedTimeSlots = allowedTimeSlots;
-    rule.updatedAt = new Date();
+    // Map action to isBlocked if provided
+    let isBlocked = isBlockedDirect;
+    if (action !== undefined) {
+      isBlocked = action === 'BLOCK';
+    }
 
+    if (appName !== undefined) rule.appName = appName;
+    if (appPackage !== undefined) rule.appPackage = appPackage;
+    if (isBlocked !== undefined) rule.isBlocked = isBlocked;
+    if (timeLimit !== undefined) rule.timeLimit = isBlocked ? null : timeLimit;
+
+    if (allowedTimeSlots !== undefined) {
+      rule.allowedTimeSlots = allowedTimeSlots;
+    } else if (allowedDays) {
+      rule.allowedTimeSlots = allowedDays.map(day => ({
+        day,
+        startTime: allowedStartTime || "09:00",
+        endTime: allowedEndTime || "21:00"
+      }));
+    }
+
+    rule.updatedAt = new Date();
     await rule.save();
 
     // Resolve the actual User ID for the child to ensure notification delivery

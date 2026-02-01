@@ -1,15 +1,35 @@
 const WebsiteRule = require("../models/WebsiteRule");
 const Notification = require("../models/Notification");
-const User = require("../models/User");
 const Child = require("../models/Child");
+const User = require("../models/User");
+
+// Helper to resolve childId (can be from Child or User collection) to User ID
+async function resolveToUserId(childId) {
+    try {
+        const child = await Child.findById(childId);
+        if (child) {
+            const user = await User.findOne({ email: child.email });
+            return user ? user._id : childId;
+        }
+    } catch (e) { }
+    return childId;
+}
 
 // Create a website rule
 exports.createWebsiteRule = async (req, res) => {
     try {
         const { childId, website, isBlocked, category, blockReason, allowedTimeSlots } = req.body;
 
+        // Resolve actual User ID if childId refers to a Child collection record
+        let resolvedChildId = childId;
+        const childRecord = await Child.findById(childId);
+        if (childRecord) {
+            const childUser = await User.findOne({ email: childRecord.email });
+            if (childUser) resolvedChildId = childUser._id;
+        }
+
         const websiteRule = new WebsiteRule({
-            child: childId,
+            child: resolvedChildId,
             parent: req.user.id,
             website,
             isBlocked: isBlocked !== undefined ? isBlocked : true,
@@ -47,7 +67,12 @@ exports.createWebsiteRule = async (req, res) => {
 exports.getWebsiteRules = async (req, res) => {
     try {
         const { childId } = req.params;
-        const rules = await WebsiteRule.find({ child: childId, parent: req.user.id });
+
+        // Lookup by both just in case
+        const rules = await WebsiteRule.find({
+            $or: [{ child: childId }, { child: await resolveToUserId(childId) }],
+            parent: req.user.id
+        });
         res.status(200).json(rules);
     } catch (err) {
         console.error(err);
@@ -112,9 +137,10 @@ exports.checkWebsiteAccess = async (req, res) => {
             return res.status(400).json({ message: "Website parameter required" });
         }
 
-        // Find matching rule
+        // Find matching rule - search by childId and its resolved User ID
+        const userId = await resolveToUserId(childId);
         const rule = await WebsiteRule.findOne({
-            child: childId,
+            $or: [{ child: childId }, { child: userId }],
             website: { $regex: new RegExp(website, 'i') }
         });
 
@@ -176,8 +202,9 @@ exports.logBlockedAttempt = async (req, res) => {
         const { childId } = req.params;
         const { website } = req.body;
 
+        const userId = await resolveToUserId(childId);
         const rule = await WebsiteRule.findOne({
-            child: childId,
+            $or: [{ child: childId }, { child: userId }],
             website: { $regex: new RegExp(website, 'i') }
         });
 
@@ -198,8 +225,10 @@ exports.logBlockedAttempt = async (req, res) => {
 exports.getBlockedAttempts = async (req, res) => {
     try {
         const { childId } = req.params;
+        const userId = await resolveToUserId(childId);
+
         const rules = await WebsiteRule.find({
-            child: childId,
+            $or: [{ child: childId }, { child: userId }],
             parent: req.user.id,
             attemptCount: { $gt: 0 }
         }).sort({ attemptCount: -1 });

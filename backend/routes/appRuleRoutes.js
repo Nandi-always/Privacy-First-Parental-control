@@ -15,9 +15,9 @@ router.post("/", authMiddleware, createAppRule);
 router.get("/:childId", authMiddleware, getAppRules);
 
 // Update an app rule
-router.put("/rules/:ruleId", authMiddleware, updateAppRule);
+router.put("/:ruleId", authMiddleware, updateAppRule);
 
 // Delete an app rule
-router.delete("/rules/:ruleId", authMiddleware, deleteAppRule);
+router.delete("/:ruleId", authMiddleware, deleteAppRule);
 
 module.exports = router;

@@ -420,13 +420,39 @@ const ChildDashboard = () => {
                     <h3>Ask Parents</h3>
                   </div>
                   <div className="quick-actions">
-                    <button className="action-btn" onClick={() => notify.info('Request for more time sent!')}>
+                    <button className="action-btn" onClick={async () => {
+                      try {
+                        const childId = user._id || user.id;
+                        await appApprovalsService.requestApproval(childId, {
+                          appName: 'Additional Screen Time',
+                          appCategory: 'other',
+                          requestReason: 'I need some more time to finish my work'
+                        });
+                        notify.success('Request for more time sent!');
+                      } catch (err) {
+                        notify.error('Failed to send request');
+                      }
+                    }}>
                       <span>⏱️</span> More Time
                     </button>
-                    <button className="action-btn" onClick={() => notify.info('Request to unblock app sent!')}>
+                    <button className="action-btn" onClick={async () => {
+                      try {
+                        const childId = user._id || user.id;
+                        // Prompt for app name if not specified
+                        const appName = prompt('Which app would you like to unblock?') || 'App Access';
+                        await appApprovalsService.requestApproval(childId, {
+                          appName: appName,
+                          appCategory: 'entertainment',
+                          requestReason: 'Please unblock this app for me'
+                        });
+                        notify.success('Request to unblock app sent!');
+                      } catch (err) {
+                        notify.error('Failed to send request');
+                      }
+                    }}>
                       <span>🔓</span> Unblock App
                     </button>
-                    <button className="action-btn" onClick={() => notify.info('Message sent to parents!')}>
+                    <button className="action-btn" onClick={() => notify.info('This feature will allow you to chat with your parents soon!')}>
                       <span>💬</span> Send Message
                     </button>
                   </div>

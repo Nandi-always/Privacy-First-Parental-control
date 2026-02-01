@@ -10,13 +10,13 @@ const ScreenTimeCard = ({ child, onEdit }) => {
 
   const fetchScreenTimeData = useCallback(async () => {
     if (!child?._id && !child?.id) return;
-    
+
     try {
       setLoading(true);
       const childId = child._id || child.id;
-      
-      // Fetch screen time data (includes both usage and limit)
-      const res = await screenTimeService.get(childId);
+
+      // Fetch screen time usage data
+      const res = await screenTimeService.getUsage(childId);
       if (res && res.data) {
         setUsed(res.data.minutesToday || res.data.used || 0);
         setLimit(res.data.dailyLimit || res.data.limit || 480);
@@ -56,7 +56,7 @@ const ScreenTimeCard = ({ child, onEdit }) => {
       </div>
 
       <div className="progress-bar">
-        <div 
+        <div
           className={`progress-fill ${isDanger ? 'danger' : isWarning ? 'warning' : 'normal'}`}
           style={{ width: `${Math.min(percentage, 100)}%` }}
         ></div>

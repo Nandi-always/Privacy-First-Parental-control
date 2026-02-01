@@ -9,7 +9,7 @@ const {
 } = require("../controllers/reportController");
 
 // Daily activity summary
-router.get("/:childId/daily", authMiddleware, getDailyActivitySummary);
+router.get("/:childId/activity", authMiddleware, getDailyActivitySummary);
 
 // Weekly insights
 router.get("/:childId/weekly", authMiddleware, getWeeklyInsights);

@@ -91,7 +91,15 @@ const AppRulesManager = ({ childId }) => {
 
   const handleEdit = (rule) => {
     setEditingRule(rule);
-    setFormData(rule);
+    // Map backend data to form data
+    const mappedData = {
+      ...rule,
+      action: rule.isBlocked ? 'BLOCK' : 'LIMIT',
+      allowedDays: rule.allowedTimeSlots?.map(ts => ts.day) || [],
+      allowedStartTime: rule.allowedTimeSlots?.[0]?.startTime || '09:00',
+      allowedEndTime: rule.allowedTimeSlots?.[0]?.endTime || '21:00'
+    };
+    setFormData(mappedData);
     setShowForm(true);
   };
 
@@ -234,15 +242,15 @@ const AppRulesManager = ({ childId }) => {
             <div key={rule._id} className="rule-item">
               <div className="rule-info">
                 <div className="rule-header">
-                  {rule.action === 'BLOCK' ? <Ban size={18} /> : <Clock size={18} />}
+                  {rule.isBlocked ? <Ban size={18} /> : <Clock size={18} />}
                   <h4>{rule.appName}</h4>
-                  <span className={`rule-badge ${rule.action ? rule.action.toLowerCase() : ''}`}>
-                    {rule.action === 'BLOCK' ? '🚫 Blocked' : '⏱️ Limited'}
+                  <span className={`rule-badge ${rule.isBlocked ? 'block' : 'limit'}`}>
+                    {rule.isBlocked ? '🚫 Blocked' : '⏱️ Limited'}
                   </span>
                 </div>
-                {rule.action === 'LIMIT' && (
+                {!rule.isBlocked && (
                   <p className="rule-details">
-                    {rule.timeLimit} mins • {rule.allowedStartTime}-{rule.allowedEndTime}
+                    {rule.timeLimit} mins • {rule.allowedTimeSlots?.[0]?.startTime || '09:00'}-{rule.allowedTimeSlots?.[0]?.endTime || '21:00'}
                   </p>
                 )}
               </div>

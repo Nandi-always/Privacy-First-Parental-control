@@ -21,13 +21,28 @@ exports.requestAppApproval = async (req, res) => {
             return res.status(400).json({ message: "Request already pending for this app" });
         }
 
-        // Get parent ID
-        const child = await Child.findById(childId);
-        if (!child) return res.status(404).json({ message: "Child not found" });
+        // Get child and parent info
+        let child = await Child.findById(childId);
+        let parentId;
+
+        if (child) {
+            parentId = child.parent;
+        } else {
+            // Check User collection for child account
+            child = await User.findById(childId);
+            if (!child || child.role !== 'child') {
+                return res.status(404).json({ message: "Child not found" });
+            }
+            parentId = child.parentId || child.parent;
+        }
+
+        if (!parentId) {
+            return res.status(400).json({ message: "Cannot determine parent for this child" });
+        }
 
         const approvalRequest = new AppApprovalRequest({
             child: childId,
-            parent: child.parent,
+            parent: parentId,
             appName,
             appPackage,
             appCategory: appCategory || "other",

@@ -1,10 +1,11 @@
 const mongoose = require("mongoose");
 
 const AppRuleSchema = new mongoose.Schema({
-  child: { type: mongoose.Schema.Types.ObjectId, ref: "Child", required: true },
+  child: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   parent: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   appName: { type: String, required: true },
-  appCategory: { type: String, enum: ["educational", "entertainment", "social", "games", "communication"], required: true },
+  appPackage: { type: String },
+  appCategory: { type: String, enum: ["educational", "entertainment", "social", "games", "communication", "other"], required: true },
   isBlocked: { type: Boolean, default: false },
   timeLimit: { type: Number, default: null }, // minutes
   allowedTimeSlots: [

@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const WebsiteRuleSchema = new mongoose.Schema({
-  child: { type: mongoose.Schema.Types.ObjectId, ref: "Child", required: true },
+  child: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   parent: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   website: { type: String, required: true },
   isBlocked: { type: Boolean, default: false },
