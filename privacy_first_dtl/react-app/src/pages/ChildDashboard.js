@@ -21,7 +21,7 @@ const ChildDashboard = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [childData, setChildData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [reportLocation, setReportLocation] = useState(null);
+  const [reportLocation, setReportLocation] = useState({ latitude: null, longitude: null });
   const [reporting, setReporting] = useState(false);
   const [sendingSOS, setSendingSOS] = useState(false);
   const [deviceStatus, setDeviceStatus] = useState(null);
@@ -41,7 +41,8 @@ const ChildDashboard = () => {
         privacyScore: 78,
         screenTime: { used: 45, limit: 60 },
         agreements: 2,
-        location: 'At Home'
+        location: 'At Home',
+        geofences: user.geofences || []
       });
     }
     setLoading(false);
@@ -119,10 +120,26 @@ const ChildDashboard = () => {
       setSendingSOS(true);
       const childId = user._id || user.id;
 
-      // Get current location if possible, otherwise send empty (backend handles it)
+      let lat = reportLocation?.latitude || 0;
+      let lng = reportLocation?.longitude || 0;
+
+      // Try to get fresh location if possible
+      if (!reportLocation && 'geolocation' in navigator) {
+        try {
+          const pos = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3000 });
+          });
+          lat = pos.coords.latitude;
+          lng = pos.coords.longitude;
+        } catch (locErr) {
+          console.warn('Could not get fresh location for SOS', locErr);
+        }
+      }
+
+      // Send SOS
       await emergencyService.sendSOS(childId, {
-        latitude: reportLocation?.latitude || 0,
-        longitude: reportLocation?.longitude || 0,
+        latitude: lat,
+        longitude: lng,
         message: 'Child triggered SOS Emergency Alert'
       });
 
@@ -150,8 +167,8 @@ const ChildDashboard = () => {
 
 
   const handleReportLocation = async () => {
-    if (!reportLocation) {
-      notify.error('Please select a location on the map first');
+    if (!reportLocation || reportLocation.latitude === null || reportLocation.longitude === null) {
+      notify.error('Please enter both latitude and longitude or use GPS');
       return;
     }
 
@@ -169,7 +186,8 @@ const ChildDashboard = () => {
       setChildData(prev => ({ ...prev, location: 'Manual Check-in' }));
     } catch (err) {
       console.error('Failed to report location', err);
-      notify.error('Failed to report location to parents');
+      const errorMsg = err.response?.data?.message || 'Failed to report location to parents';
+      notify.error(errorMsg);
     } finally {
       setReporting(false);
     }
@@ -581,7 +599,11 @@ const ChildDashboard = () => {
                       placeholder="Latitude"
                       className="zone-input"
                       style={{ flex: 1 }}
-                      onChange={(e) => setReportLocation(prev => ({ ...prev, latitude: parseFloat(e.target.value), longitude: prev?.longitude || 77.5946 }))}
+                      value={reportLocation?.latitude ?? ''}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? null : parseFloat(e.target.value);
+                        setReportLocation(prev => ({ ...(prev || {}), latitude: val }));
+                      }}
                     />
                     <input
                       type="number"
@@ -589,32 +611,109 @@ const ChildDashboard = () => {
                       placeholder="Longitude"
                       className="zone-input"
                       style={{ flex: 1 }}
-                      onChange={(e) => setReportLocation(prev => ({ ...prev, longitude: parseFloat(e.target.value), latitude: prev?.latitude || 12.9716 }))}
+                      value={reportLocation?.longitude ?? ''}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? null : parseFloat(e.target.value);
+                        setReportLocation(prev => ({ ...(prev || {}), longitude: val }));
+                      }}
                     />
                   </div>
 
-                  <p className="instruction-text">Or use your current GPS:</p>
-                  <button
-                    className="btn btn-secondary"
-                    style={{ width: '100%', marginBottom: '15px' }}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if ('geolocation' in navigator) {
-                        navigator.geolocation.getCurrentPosition(pos => {
-                          setReportLocation({
-                            latitude: pos.coords.latitude,
-                            longitude: pos.coords.longitude
+                  <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                    <button
+                      className="btn btn-secondary"
+                      style={{ flex: 3 }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if ('geolocation' in navigator) {
+                          notify.info('Accessing GPS...');
+                          navigator.geolocation.getCurrentPosition(
+                            async pos => {
+                              const newLoc = {
+                                latitude: pos.coords.latitude,
+                                longitude: pos.coords.longitude
+                              };
+                              setReportLocation(newLoc);
+                              notify.success('Location acquired! Reporting to parents...');
+
+                              // Automatically report after acquisition
+                              try {
+                                setReporting(true);
+                                const childId = user._id || user.id;
+                                await locationService.updateLocation(childId, {
+                                  ...newLoc,
+                                  address: 'GPS Check-in',
+                                  accuracy: pos.coords.accuracy || 10
+                                });
+                                notify.success('Location reported successfully!');
+                                setChildData(prev => ({ ...prev, location: 'GPS Check-in' }));
+                              } catch (err) {
+                                console.error('Auto-report error:', err);
+                                const errorMsg = err.response?.data?.message || 'Failed to auto-report location';
+                                notify.error(errorMsg);
+                              } finally {
+                                setReporting(false);
+                              }
+                            },
+                            err => {
+                              console.error('Geolocation error:', err);
+                              let msg = err.message;
+                              if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+                                msg += " (Browser requires HTTPS for GPS access)";
+                              }
+                              notify.error(`Location failed: ${msg}`);
+                            },
+                            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                          );
+                        } else {
+                          notify.error('Geolocation is not supported by your browser');
+                        }
+                      }}
+                    >
+                      📍 Get Current Location
+                    </button>
+                    <button
+                      className="btn btn-outline"
+                      style={{ flex: 1, fontSize: '12px' }}
+                      title="Simulate location for testing"
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        const simulated = {
+                          latitude: 12.9716 + (Math.random() - 0.5) * 0.05,
+                          longitude: 77.5946 + (Math.random() - 0.5) * 0.05
+                        };
+                        setReportLocation(simulated);
+                        notify.info('Simulated location generated. Reporting...');
+
+                        try {
+                          setReporting(true);
+                          const childId = user._id || user.id;
+                          await locationService.updateLocation(childId, {
+                            ...simulated,
+                            address: 'Simulated Check-in',
+                            accuracy: 5
                           });
-                        });
-                      } else {
-                        alert('Geolocation not supported');
-                      }
-                    }}
+                          notify.success('Simulated location reported!');
+                          setChildData(prev => ({ ...prev, location: 'Simulated Check-in' }));
+                        } catch (err) {
+                          console.error('Simulated report error:', err);
+                          const errorMsg = err.response?.data?.message || 'Failed to report simulated location';
+                          notify.error(errorMsg);
+                        } finally {
+                          setReporting(false);
+                        }
+                      }}
+                    >
+                      🧪 Simulate
+                    </button>
+                  </div>
+                  <button
+                    className="btn btn-primary"
+                    style={{ width: '100%' }}
+                    onClick={handleReportLocation}
+                    disabled={reporting || !reportLocation}
                   >
-                    📍 Get Current Location
-                  </button>
-                  <button className="btn-primary report-btn" onClick={handleReportLocation} disabled={reporting || !reportLocation}>
-                    {reporting ? 'Sending Check-in...' : 'Send Manual Report'}
+                    {reporting ? 'Sending Report...' : '📤 Send Manual Report'}
                   </button>
                 </div>
               </div>

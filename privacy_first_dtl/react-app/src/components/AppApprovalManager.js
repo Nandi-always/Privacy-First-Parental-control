@@ -15,15 +15,8 @@ const AppApprovalManager = ({ childId }) => {
   const fetchRequests = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await appApprovalsService.getRequests(filter);
-      // Filter by childId if provided
-      const filteredRequests = childId
-        ? (res.data || []).filter(r => {
-          const rChildId = r.child?._id || r.child || '';
-          return rChildId.toString() === childId.toString();
-        })
-        : (res.data || []);
-      setRequests(filteredRequests);
+      const res = await appApprovalsService.getRequests(filter, childId);
+      setRequests(res.data || []);
     } catch (err) {
       console.error('Failed to fetch approval requests', err);
       setRequests([]);
@@ -172,23 +165,20 @@ const AppApprovalManager = ({ childId }) => {
                 </div>
 
                 {request.status === 'pending' && (
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div className="request-actions" style={{ display: 'flex', gap: '8px' }}>
                     <button
                       className="btn btn-success"
-                      style={{ padding: '8px 16px' }}
+                      style={{ padding: '8px 16px', background: '#10b981', color: 'white' }}
                       onClick={() => setSelectedRequest(request)}
                     >
-                      <Check size={16} /> Approve
+                      <Check size={16} /> APPROVE
                     </button>
                     <button
                       className="btn btn-danger"
-                      style={{ padding: '8px 16px', background: '#dc2626' }}
-                      onClick={() => {
-                        setSelectedRequest(request);
-                        // Show deny modal
-                      }}
+                      style={{ padding: '8px 16px', background: '#dc2626', color: 'white' }}
+                      onClick={() => setSelectedRequest(request)}
                     >
-                      <X size={16} /> Deny
+                      <X size={16} /> DENY
                     </button>
                   </div>
                 )}
@@ -222,16 +212,17 @@ const AppApprovalManager = ({ childId }) => {
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button
                       className="btn btn-success"
+                      style={{ background: '#10b981', color: 'white' }}
                       onClick={() => handleApprove(request._id)}
                     >
-                      ✅ Approve App
+                      <Check size={16} /> APPROVE NOW
                     </button>
                     <button
-                      className="btn"
+                      className="btn btn-danger"
                       style={{ background: '#dc2626', color: 'white' }}
                       onClick={() => handleDeny(request._id)}
                     >
-                      ❌ Deny App
+                      <X size={16} /> DENY NOW
                     </button>
                     <button
                       className="btn btn-secondary"

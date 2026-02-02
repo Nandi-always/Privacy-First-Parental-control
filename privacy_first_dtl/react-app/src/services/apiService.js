@@ -151,8 +151,11 @@ export const websiteRulesService = {
 export const appApprovalsService = {
   requestApproval: (childId, data) =>
     apiClient.post(`/app-approvals/${childId}/request`, data),
-  getRequests: (status = 'all') =>
-    apiClient.get(`/app-approvals?status=${status}`),
+  getRequests: (status = 'all', childId = null) => {
+    let url = `/app-approvals?status=${status}`;
+    if (childId) url += `&childId=${childId}`;
+    return apiClient.get(url);
+  },
   getChildRequests: (childId) =>
     apiClient.get(`/app-approvals/${childId}/my-requests`),
   approve: (requestId, parentResponse) =>
