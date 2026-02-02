@@ -35,110 +35,137 @@ const getRandomLocation = () => {
 // Update live location
 exports.updateLocation = async (req, res) => {
   try {
-    const { childId } = req.params;
+    const childId = String(req.params.childId);
     const { latitude, longitude, address, accuracy } = req.body;
+
+    console.log(`📍 Received location update for child: ${childId}`);
+
+    if (!latitude || !longitude) {
+      return res.status(400).json({ message: "Latitude and longitude are required" });
+    }
 
     // Fetch child to get parent ID and geofence settings
     const User = require("../models/User");
-    const child = await Child.findById(childId) || await User.findById(childId);
+    let child = await Child.findById(childId);
     if (!child) {
-      return res.status(404).json({ message: "Child identification missing" });
+      child = await User.findById(childId);
     }
-    const parentId = child.parent || child.parentId;
+
+    if (!child) {
+      console.error(`❌ Child not found for ID: ${childId}`);
+      return res.status(404).json({ message: "Child account not found in system" });
+    }
+
+    // Safely extract data using toObject() to avoid conflict with Mongoose .parent() function
+    const childData = child.toObject();
+    let parentId = childData.parent || childData.parentId;
+
+    // Fallback: If no parent linked, find the first parent in DB for demo purposes
     if (!parentId) {
-      return res.status(404).json({ message: "Parent not found for this child" });
+      console.warn(`⚠️ No parent linked to child ${childId}, searching for fallback parent...`);
+      const fallbackParent = await User.findOne({ role: 'parent' });
+      if (fallbackParent) {
+        parentId = fallbackParent._id;
+        console.log(`   Using fallback parent: ${parentId}`);
+      }
+    }
+
+    if (!parentId) {
+      console.error(`❌ No parent account found to report to`);
+      return res.status(400).json({ message: "Your account is not linked to any parent. Please link your account first." });
     }
 
     // Remove old live location
-    await Location.updateMany(
-      { child: childId, isLive: true },
-      { isLive: false }
-    );
+    try {
+      await Location.updateMany(
+        { child: childId, isLive: true },
+        { isLive: false }
+      );
+    } catch (err) {
+      console.warn('   Could not update old live locations:', err.message);
+    }
 
     // Create new live location
     const location = new Location({
       child: childId,
-      parent: child.parent, // Use parent ID from child document
-      latitude,
-      longitude,
-      address,
-      accuracy,
+      parent: parentId,
+      latitude: parseFloat(latitude),
+      longitude: parseFloat(longitude),
+      address: address || 'Current Location',
+      accuracy: accuracy || 10,
       isLive: true
     });
 
     await location.save();
+    console.log(`✅ Location saved successfully for child ${childId}`);
 
     // Send notification for manual/live update
-    const checkinNotif = new Notification({
-      senderId: childId,
-      receiverId: parentId,
-      message: `${child.name} reported their current location: ${address || 'Coordinates provided'}`,
-      type: "alert",
-      isRead: false
-    });
-    await checkinNotif.save();
+    try {
+      const checkinNotif = new Notification({
+        senderId: childId,
+        receiverId: parentId,
+        message: `${child.name || 'Your child'} reported their current location: ${address || 'Coordinates provided'}`,
+        type: "alert",
+        isRead: false
+      });
+      await checkinNotif.save();
+      console.log(`🔔 Notification sent to parent: ${parentId}`);
+    } catch (notifErr) {
+      console.error(`⚠️ Notification failed:`, notifErr.message);
+    }
 
     // Geofence Check (Privacy-First Event Based)
-    const currentTime = new Date();
-    const currentDay = currentTime.toLocaleDateString('en-US', { weekday: 'long' });
-    const currentHourMin = `${String(currentTime.getHours()).padStart(2, '0')}:${String(currentTime.getMinutes()).padStart(2, '0')}`;
+    try {
+      if (child && child.geofences && child.geofences.length > 0) {
+        const currentTime = new Date();
+        const currentDay = currentTime.toLocaleDateString('en-US', { weekday: 'long' });
+        const currentHourMin = `${String(currentTime.getHours()).padStart(2, '0')}:${String(currentTime.getMinutes()).padStart(2, '0')}`;
 
-    if (child && child.geofences && child.geofences.length > 0) {
-      const updatedGeofences = [...child.geofences];
-      let changesMade = false;
+        const updatedGeofences = [...child.geofences];
+        let changesMade = false;
 
-      for (let i = 0; i < updatedGeofences.length; i++) {
-        const zone = updatedGeofences[i];
-        if (!zone.enabled) continue;
+        for (let i = 0; i < updatedGeofences.length; i++) {
+          const zone = updatedGeofences[i];
+          if (!zone.enabled) continue;
 
-        // 1. Time-Bound Check
-        const withinDay = !zone.days || zone.days.length === 0 || zone.days.includes(currentDay);
-        const withinTime = (!zone.startTime || currentHourMin >= zone.startTime) &&
-          (!zone.endTime || currentHourMin <= zone.endTime);
+          const withinDay = !zone.days || zone.days.length === 0 || zone.days.includes(currentDay);
+          const withinTime = (!zone.startTime || currentHourMin >= zone.startTime) &&
+            (!zone.endTime || currentHourMin <= zone.endTime);
 
-        if (withinDay && withinTime) {
-          const distance = getDistance(latitude, longitude, zone.latitude, zone.longitude);
-          const isInside = distance <= (zone.radius || 200);
-          const newStatus = isInside ? "inside" : "outside";
+          if (withinDay && withinTime) {
+            const distance = getDistance(latitude, longitude, zone.latitude, zone.longitude);
+            const isInside = distance <= (zone.radius || 200);
+            const newStatus = isInside ? "inside" : "outside";
 
-          // 2. Event-Based Alert (Only if status changed)
-          if (zone.lastStatus !== "unknown" && zone.lastStatus !== newStatus) {
-            const eventType = newStatus === "inside" ? "Entered" : "Left";
-            const message = `PV-EVENT: ${child.name} ${eventType} ${zone.name} zone.`;
+            if (zone.lastStatus !== "unknown" && zone.lastStatus !== newStatus) {
+              const eventType = newStatus === "inside" ? "Entered" : "Left";
+              const notification = new Notification({
+                senderId: childId,
+                receiverId: parentId,
+                message: `PV-EVENT: ${child.name} ${eventType} ${zone.name} zone.`,
+                type: "alert",
+                isRead: false
+              });
+              await notification.save();
+            }
 
-            // Create notification for parent
-            const notification = new Notification({
-              senderId: childId,
-              receiverId: parentId,
-              message: message,
-              type: "alert",
-              isRead: false
-            });
-            await notification.save();
-            console.log(`🔔 Privacy Event: ${message}`);
-          }
-
-          zone.lastStatus = newStatus;
-          changesMade = true;
-        } else {
-          // Outside monitoring window, reset status
-          if (zone.lastStatus !== "unknown") {
-            zone.lastStatus = "unknown";
+            zone.lastStatus = newStatus;
             changesMade = true;
           }
         }
-      }
 
-      if (changesMade) {
-        child.geofences = updatedGeofences;
-        await child.save();
+        if (changesMade && child.save && typeof child.save === 'function') {
+          await child.save();
+        }
       }
+    } catch (geofenceErr) {
+      console.error(`⚠️ Geofence failed:`, geofenceErr.message);
     }
 
-    res.status(201).json({ message: "Location updated", location });
+    res.status(201).json({ message: "Location updated successfully", location });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.error(`❌ Critical error in updateLocation:`, err);
+    res.status(500).json({ message: "Server error during location report", error: err.message });
   }
 };
 

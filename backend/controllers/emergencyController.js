@@ -36,7 +36,8 @@ exports.sendEmergencyAlert = async (req, res) => {
       console.log(`🔍 Searching Child collection for ${effectiveChildId}...`);
       const childRecord = await Child.findById(effectiveChildId);
       if (childRecord) {
-        parentId = childRecord.parent;
+        // Use .get('parent') to avoid Mongoose method conflict
+        parentId = childRecord.get ? childRecord.get('parent') : childRecord.parent;
         childName = childRecord.name;
         console.log(`✅ Found parent in Child record: ${parentId}`);
       } else {
@@ -45,14 +46,12 @@ exports.sendEmergencyAlert = async (req, res) => {
         const childUser = await User.findById(effectiveChildId);
         if (childUser) {
           if (childUser.role === 'child') {
-            parentId = childUser.parentId;
+            parentId = childUser.parentId || (childUser.get ? childUser.get('parent') : childUser.parent);
             childName = childUser.name;
             console.log(`✅ Found parent in User record: ${parentId}`);
           } else {
-            console.warn(`⚠️ ID ${effectiveChildId} belongs to a PARENT account, not a child. Self-alerting?`);
-            // Optional: Allow parents to test SOS? For now, fail or let them alert themselves if desired.
-            // Let's assume testing: set parentId to themselves or handle gracefully/
-            parentId = childUser._id; // Self-alert for testing
+            console.warn(`⚠️ ID ${effectiveChildId} belongs to a PARENT account, not a child. Self-alerting for test.`);
+            parentId = childUser._id;
           }
         }
       }
@@ -61,8 +60,8 @@ exports.sendEmergencyAlert = async (req, res) => {
       return res.status(500).json({ message: "Database lookup failed", error: lookupErr.message });
     }
 
-    if (!parentId) {
-      console.error(`❌ SOS Failure: No parent found for childId ${effectiveChildId}`);
+    if (!parentId || typeof parentId === 'function') {
+      console.error(`❌ SOS Failure: No valid parent found for childId ${effectiveChildId}`);
       return res.status(404).json({ message: "Unable to identify your parent to send alert. Please check account linkage." });
     }
 

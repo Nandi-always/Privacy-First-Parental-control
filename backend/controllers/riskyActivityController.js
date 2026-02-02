@@ -10,9 +10,26 @@ const Notification = require("../models/Notification");
 exports.detectRiskyActivity = async (req, res) => {
     try {
         const { childId } = req.params;
+        console.log(`🔍 Running risky activity detection for child: ${childId}`);
 
-        const child = await Child.findById(childId);
-        if (!child) return res.status(404).json({ message: "Child not found" });
+        let childDoc = await Child.findById(childId);
+        if (!childDoc) {
+            childDoc = await User.findById(childId);
+        }
+
+        if (!childDoc) {
+            console.error(`❌ Risky Detection: Child not found: ${childId}`);
+            return res.status(404).json({ message: "Child not found" });
+        }
+
+        // Safely extract parentId
+        const childData = childDoc.toObject();
+        const parentId = childData.parent || childData.parentId;
+
+        if (!parentId || typeof parentId === 'function') {
+            console.error(`❌ Risky Detection: No parent linked for child ${childId}`);
+            return res.status(400).json({ message: "No parent linked to this account" });
+        }
 
         const today = new Date().toDateString();
         const alerts = [];
@@ -23,14 +40,14 @@ exports.detectRiskyActivity = async (req, res) => {
             date: today
         });
 
-        if (screenTime && screenTime.totalTime > 360) { // 6 hours = 360 minutes
+        if (screenTime && screenTime.totalTime > 360) {
             const alert = new RiskyActivityAlert({
                 child: childId,
-                parent: child.parent,
+                parent: parentId,
                 alertType: "excessive_screen_time",
                 severity: "high",
                 description: `Child has used ${Math.floor(screenTime.totalTime / 60)} hours of screen time today`,
-                metadata: { totalTime: screenTime.totalTime, limit: child.dailyScreenTimeLimit }
+                metadata: { totalTime: screenTime.totalTime, limit: childData.dailyScreenTimeLimit }
             });
             await alert.save();
             alerts.push(alert);
@@ -43,7 +60,7 @@ exports.detectRiskyActivity = async (req, res) => {
             if (currentHour >= 0 && currentHour < 5) {
                 const alert = new RiskyActivityAlert({
                     child: childId,
-                    parent: child.parent,
+                    parent: parentId,
                     alertType: "late_night_usage",
                     severity: "medium",
                     description: `Child is using device at ${now.toLocaleTimeString()}`,
@@ -64,7 +81,7 @@ exports.detectRiskyActivity = async (req, res) => {
         if (totalAttempts > 5) {
             const alert = new RiskyActivityAlert({
                 child: childId,
-                parent: child.parent,
+                parent: parentId,
                 alertType: "blocked_site_attempts",
                 severity: "medium",
                 description: `Child attempted to access blocked websites ${totalAttempts} times today`,
@@ -78,13 +95,13 @@ exports.detectRiskyActivity = async (req, res) => {
         const recentDownloads = await AppDownloadAlert.find({
             child: childId,
             downloadTime: { $gte: new Date(today) },
-            action: null // Not yet approved or blocked
+            action: null
         });
 
         if (recentDownloads.length > 0) {
             const alert = new RiskyActivityAlert({
                 child: childId,
-                parent: child.parent,
+                parent: parentId,
                 alertType: "unauthorized_app",
                 severity: "high",
                 description: `${recentDownloads.length} new app(s) installed without approval`,
@@ -96,22 +113,27 @@ exports.detectRiskyActivity = async (req, res) => {
 
         // Send notifications for new alerts
         for (const alert of alerts) {
-            const notif = new Notification({
-                senderId: childId,
-                receiverId: child.parent,
-                type: "risky_activity",
-                message: `⚠️ ${alert.description}`,
-                isRead: false
-            });
-            await notif.save();
+            try {
+                const notif = new Notification({
+                    senderId: childId,
+                    receiverId: parentId,
+                    type: "risky_activity",
+                    message: `⚠️ ${alert.description}`,
+                    isRead: false
+                });
+                await notif.save();
+            } catch (notifErr) {
+                console.warn('   Notification failed:', notifErr.message);
+            }
         }
 
+        console.log(`✅ Risky Detection complete: ${alerts.length} alerts generated.`);
         res.status(200).json({
             message: `Detected ${alerts.length} risky activities`,
             alerts
         });
     } catch (err) {
-        console.error(err);
+        console.error(`❌ Risky Detection Error:`, err);
         res.status(500).json({ message: "Server error", error: err.message });
     }
 };

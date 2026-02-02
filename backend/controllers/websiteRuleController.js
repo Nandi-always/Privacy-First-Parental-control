@@ -6,12 +6,21 @@ const User = require("../models/User");
 // Helper to resolve childId (can be from Child or User collection) to User ID
 async function resolveToUserId(childId) {
     try {
+        console.log(`🔍 Resolving childId: ${childId}`);
         const child = await Child.findById(childId);
         if (child) {
+            console.log(`   Found Child record for email: ${child.email}`);
             const user = await User.findOne({ email: child.email });
-            return user ? user._id : childId;
+            if (user) {
+                console.log(`   Resolved to User ID: ${user._id}`);
+                return user._id;
+            }
+        } else {
+            console.log(`   No Child record found for ID: ${childId}, assuming it is a User ID`);
         }
-    } catch (e) { }
+    } catch (e) {
+        console.log(`   Resolution error (likely already a User ID): ${e.message}`);
+    }
     return childId;
 }
 
@@ -131,67 +140,104 @@ exports.deleteWebsiteRule = async (req, res) => {
 exports.checkWebsiteAccess = async (req, res) => {
     try {
         const { childId } = req.params;
-        const { website } = req.query;
+        let { website } = req.query;
+
+        console.log(`🔍 Checking website access for childId: ${childId}, site: ${website}`);
 
         if (!website) {
             return res.status(400).json({ message: "Website parameter required" });
         }
 
-        // Find matching rule - search by childId and its resolved User ID
-        const userId = await resolveToUserId(childId);
-        const rule = await WebsiteRule.findOne({
-            $or: [{ child: childId }, { child: userId }],
-            website: { $regex: new RegExp(website, 'i') }
+        // --- 1. ID Resolution (Cross-check User and Child collections) ---
+        const allPossibleChildIds = [childId];
+        try {
+            // Find correspondencies to ensure we check all possible IDs rules could be saved under
+            const user = await User.findById(childId);
+            if (user) {
+                const child = await Child.findOne({ email: user.email });
+                if (child) allPossibleChildIds.push(child._id.toString());
+            } else {
+                const child = await Child.findById(childId);
+                if (child) {
+                    const user = await User.findOne({ email: child.email });
+                    if (user) allPossibleChildIds.push(user._id.toString());
+                }
+            }
+        } catch (e) { }
+        console.log(`   Searching rules for all linked IDs:`, allPossibleChildIds);
+
+        // --- 2. Normalize Website for Matching ---
+        let requestedDomain = website.toLowerCase();
+        try {
+            if (website.includes('://')) {
+                requestedDomain = new URL(website).hostname;
+            } else if (website.includes('/')) {
+                requestedDomain = website.split('/')[0];
+            }
+        } catch (e) { }
+        requestedDomain = requestedDomain.replace(/^www\./, '');
+        console.log(`   Normalized check domain: ${requestedDomain}`);
+
+        // --- 3. Find Matching Rules ---
+        const rules = await WebsiteRule.find({
+            child: { $in: allPossibleChildIds }
         });
 
-        if (!rule) {
-            // No rule found, allow by default
-            return res.status(200).json({
-                allowed: true,
-                message: "No restriction found"
-            });
+        console.log(`   Found ${rules.length} total rules for this child.`);
+
+        // Find match
+        const matchingRule = rules.find(rule => {
+            const ruleSite = rule.website.toLowerCase().replace(/^www\./, '').replace(/https?:\/\//, '');
+            return requestedDomain === ruleSite ||
+                requestedDomain.endsWith('.' + ruleSite) ||
+                requestedDomain.includes(ruleSite) ||
+                ruleSite.includes(requestedDomain);
+        });
+
+        if (!matchingRule) {
+            console.log(`   ✅ No matching rule. Allowing.`);
+            return res.status(200).json({ allowed: true, message: "No restriction found" });
         }
 
-        // Check if blocked
-        if (rule.isBlocked) {
-            // Check time-based restrictions
-            if (rule.allowedTimeSlots && rule.allowedTimeSlots.length > 0) {
+        console.log(`   🚩 Found rule: ${matchingRule.website} (isBlocked: ${matchingRule.isBlocked})`);
+
+        // --- 4. Block Check ---
+        if (matchingRule.isBlocked) {
+            // Time Check
+            if (matchingRule.allowedTimeSlots && matchingRule.allowedTimeSlots.length > 0) {
                 const now = new Date();
                 const currentDay = now.toLocaleDateString('en-US', { weekday: 'long' });
-                const currentTime = now.toTimeString().slice(0, 5);
+                const currentTime = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
 
-                const allowedSlot = rule.allowedTimeSlots.find(slot => {
+                const allowedSlot = matchingRule.allowedTimeSlots.find(slot => {
                     if (slot.day !== currentDay) return false;
-                    const start = new Date(`1970-01-01T${slot.startTime}`);
-                    const end = new Date(`1970-01-01T${slot.endTime}`);
-                    const current = new Date(`1970-01-01T${currentTime}`);
-                    return current >= start && current <= end;
+                    return currentTime >= slot.startTime && currentTime <= slot.endTime;
                 });
 
                 if (allowedSlot) {
-                    return res.status(200).json({
-                        allowed: true,
-                        message: "Allowed during current time slot"
-                    });
+                    console.log(`   ✅ Within allowed slot.`);
+                    return res.status(200).json({ allowed: true, message: "Allowed during time slot" });
                 }
             }
 
-            // Blocked - log attempt
-            rule.attemptCount += 1;
-            rule.lastAttempt = new Date();
-            await rule.save();
+            // Still blocked - Log statistics
+            matchingRule.attemptCount = (matchingRule.attemptCount || 0) + 1;
+            matchingRule.lastAttempt = new Date();
+            await matchingRule.save();
 
+            console.log(`   🚫 Blocked: ${matchingRule.blockReason}`);
             return res.status(200).json({
                 allowed: false,
                 blocked: true,
-                reason: rule.blockReason,
-                category: rule.category
+                reason: matchingRule.blockReason,
+                category: matchingRule.category
             });
         }
 
+        console.log(`   ✅ Explicitly allowed.`);
         res.status(200).json({ allowed: true, message: "Website allowed" });
     } catch (err) {
-        console.error(err);
+        console.error('❌ Error in checkWebsiteAccess:', err);
         res.status(500).json({ message: "Server error", error: err.message });
     }
 };

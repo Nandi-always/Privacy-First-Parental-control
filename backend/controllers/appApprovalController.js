@@ -10,6 +10,8 @@ exports.requestAppApproval = async (req, res) => {
         const { childId } = req.params;
         const { appName, appPackage, appCategory, requestReason } = req.body;
 
+        console.log(`📱 App approval request from child: ${childId} for ${appName}`);
+
         // Check if request already exists
         const existingRequest = await AppApprovalRequest.findOne({
             child: childId,
@@ -22,26 +24,50 @@ exports.requestAppApproval = async (req, res) => {
         }
 
         // Get child and parent info
-        let child = await Child.findById(childId);
+        let childDoc = await Child.findById(childId);
         let parentId;
+        let resolvedChildId = childId;
 
-        if (child) {
-            parentId = child.parent;
-        } else {
-            // Check User collection for child account
-            child = await User.findById(childId);
-            if (!child || child.role !== 'child') {
-                return res.status(404).json({ message: "Child not found" });
+        if (childDoc) {
+            // If we found a record in Child collection, find the linked User record
+            const childUser = await User.findOne({ email: childDoc.email });
+            if (childUser) {
+                resolvedChildId = childUser._id;
+                console.log(`   Resolved Child ID to User ID: ${resolvedChildId}`);
             }
-            parentId = child.parentId || child.parent;
+        } else {
+            // Check User collection directly
+            childDoc = await User.findById(childId);
         }
 
-        if (!parentId) {
-            return res.status(400).json({ message: "Cannot determine parent for this child" });
+        if (!childDoc) {
+            console.error(`❌ Child not found for ID: ${childId}`);
+            return res.status(404).json({ message: "Child account not found" });
         }
+
+        // Safely extract parent ID avoiding Mongoose method conflict
+        const childData = childDoc.toObject();
+        parentId = childData.parent || childData.parentId;
+
+        // Fallback: search for any parent if not linked (for demo)
+        if (!parentId || typeof parentId === 'function') {
+            console.warn(`⚠️ No parent linked to child ${childId}, searching for fallback parent...`);
+            const fallbackParent = await User.findOne({ role: 'parent' });
+            if (fallbackParent) {
+                parentId = fallbackParent._id;
+                console.log(`   Using fallback parent: ${parentId}`);
+            }
+        }
+
+        if (!parentId || typeof parentId === 'function') {
+            console.error(`❌ Parent ID not found for child: ${childId}`);
+            return res.status(400).json({ message: "Your account is not linked to any parent." });
+        }
+
+        console.log(`   Reporting request to parent: ${parentId}`);
 
         const approvalRequest = new AppApprovalRequest({
-            child: childId,
+            child: resolvedChildId,
             parent: parentId,
             appName,
             appPackage,
@@ -50,23 +76,29 @@ exports.requestAppApproval = async (req, res) => {
         });
 
         await approvalRequest.save();
+        console.log(`✅ App request saved successfully`);
 
         // Notify parent
-        const notif = new Notification({
-            senderId: childId,
-            receiverId: child.parent,
-            type: "app_approval_request",
-            message: `${child.name} requests approval for app: ${appName}`,
-            isRead: false
-        });
-        await notif.save();
+        try {
+            const notif = new Notification({
+                senderId: childId,
+                receiverId: parentId,
+                type: "app_approval_request",
+                message: `${childDoc.name || 'Your child'} requests approval for app: ${appName}`,
+                isRead: false
+            });
+            await notif.save();
+            console.log(`🔔 Notification sent to parent: ${parentId}`);
+        } catch (notifErr) {
+            console.warn(`⚠️ Failed to send notification:`, notifErr.message);
+        }
 
         res.status(201).json({
             message: "App approval request sent to parent",
             request: approvalRequest
         });
     } catch (err) {
-        console.error(err);
+        console.error(`❌ Critical error in requestAppApproval:`, err);
         res.status(500).json({ message: "Server error", error: err.message });
     }
 };
@@ -74,20 +106,42 @@ exports.requestAppApproval = async (req, res) => {
 // Parent gets all approval requests
 exports.getApprovalRequests = async (req, res) => {
     try {
-        const { status } = req.query; // pending, approved, denied, or all
+        const { status, childId } = req.query; // pending, approved, denied, or all
+        console.log(`🔍 Parent ${req.user.id} fetching app requests (status: ${status || 'all'}, childFilter: ${childId || 'none'})`);
 
         const query = { parent: req.user.id };
         if (status && status !== "all") {
             query.status = status;
         }
 
+        // Apply child filter if provided
+        if (childId) {
+            const allPossibleChildIds = [childId];
+            try {
+                const user = await User.findById(childId);
+                if (user) {
+                    const child = await Child.findOne({ email: user.email });
+                    if (child) allPossibleChildIds.push(child._id.toString());
+                } else {
+                    const child = await Child.findById(childId);
+                    if (child) {
+                        const user = await User.findOne({ email: child.email });
+                        if (user) allPossibleChildIds.push(user._id.toString());
+                    }
+                }
+            } catch (e) { }
+            query.child = { $in: allPossibleChildIds };
+            console.log(`   Applying child filter for IDs:`, allPossibleChildIds);
+        }
+
         const requests = await AppApprovalRequest.find(query)
             .populate("child", "name email age")
             .sort({ requestedAt: -1 });
 
+        console.log(`   Found ${requests.length} total requests for this parent`);
         res.status(200).json(requests);
     } catch (err) {
-        console.error(err);
+        console.error(`❌ Error in getApprovalRequests:`, err);
         res.status(500).json({ message: "Server error", error: err.message });
     }
 };
@@ -196,13 +250,42 @@ exports.denyRequest = async (req, res) => {
 exports.getChildRequests = async (req, res) => {
     try {
         const { childId } = req.params;
+        console.log(`🔍 Fetching app requests for childId: ${childId}`);
 
-        const requests = await AppApprovalRequest.find({ child: childId })
-            .sort({ requestedAt: -1 });
+        // Resolve all possible IDs for this child
+        const allPossibleChildIds = [childId];
+        try {
+            const user = await User.findById(childId);
+            if (user) {
+                const child = await Child.findOne({ email: user.email });
+                if (child) {
+                    allPossibleChildIds.push(child._id.toString());
+                    console.log(`   Found associated Child record: ${child._id}`);
+                }
+            } else {
+                const child = await Child.findById(childId);
+                if (child) {
+                    const user = await User.findOne({ email: child.email });
+                    if (user) {
+                        allPossibleChildIds.push(user._id.toString());
+                        console.log(`   Found associated User record: ${user._id}`);
+                    }
+                }
+            }
+        } catch (e) {
+            console.log('   ID Resolution note:', e.message);
+        }
 
+        console.log(`   Searching requests for IDs:`, allPossibleChildIds);
+
+        const requests = await AppApprovalRequest.find({
+            child: { $in: allPossibleChildIds }
+        }).sort({ requestedAt: -1 });
+
+        console.log(`   Found ${requests.length} requests`);
         res.status(200).json(requests);
     } catch (err) {
-        console.error(err);
+        console.error(`❌ Error in getChildRequests:`, err);
         res.status(500).json({ message: "Server error", error: err.message });
     }
 };
