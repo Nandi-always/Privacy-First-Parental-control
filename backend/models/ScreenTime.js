@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const ScreenTimeSchema = new mongoose.Schema({
-  child: { type: mongoose.Schema.Types.ObjectId, ref: "Child", required: true },
+  child: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   parent: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   date: { type: Date, required: true },
   totalTime: { type: Number, default: 0 }, // minutes

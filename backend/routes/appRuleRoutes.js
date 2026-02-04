@@ -9,15 +9,15 @@ const {
 } = require("../controllers/appRuleController");
 
 // Create app rule for a child
-router.post("/:childId/rules", authMiddleware, createAppRule);
+router.post("/", authMiddleware, createAppRule);
 
 // Get all rules for a child
-router.get("/:childId/rules", authMiddleware, getAppRules);
+router.get("/:childId", authMiddleware, getAppRules);
 
 // Update an app rule
-router.put("/rules/:ruleId", authMiddleware, updateAppRule);
+router.put("/:ruleId", authMiddleware, updateAppRule);
 
 // Delete an app rule
-router.delete("/rules/:ruleId", authMiddleware, deleteAppRule);
+router.delete("/:ruleId", authMiddleware, deleteAppRule);
 
 module.exports = router;

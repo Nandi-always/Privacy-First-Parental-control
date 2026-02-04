@@ -1,6 +1,6 @@
-const AppDownloadAlert = require("../models/AppDownloadAlert");
-const Notification = require("../models/Notification");
 const AppRule = require("../models/AppRule");
+const Child = require("../models/Child");
+const User = require("../models/User");
 
 // Log app download
 exports.logAppDownload = async (req, res) => {
@@ -25,13 +25,23 @@ exports.logAppDownload = async (req, res) => {
       await alert.save();
     }
 
+    // We must find the actual parent of this child
+    const childRec = await Child.findById(childId) || await User.findById(childId);
+    if (!childRec) return res.status(404).json({ message: "Child not found" });
+    const parentId = childRec.parent || childRec.parentId;
+    if (!parentId) return res.status(404).json({ message: "Parent not found for this child" });
+
+    // Update alert parent
+    alert.parent = parentId;
+    await alert.save();
+
     // Send notification to parent
     const notif = new Notification({
-      child: childId,
-      parent: req.user.id,
+      senderId: childId,
+      receiverId: parentId,
       type: "app_download",
       message: `New app downloaded: ${appName}`,
-      read: false
+      isRead: false
     });
     await notif.save();
 

@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Clock, MapPin, BookOpen, AlertCircle, Home } from 'lucide-react';
+import { Shield, Clock, BookOpen, AlertCircle, Home, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import ChildHeader from '../components/ChildHeader';
+import DeviceLockScreen from '../components/DeviceLockScreen';
+import BlockedWebsiteScreen from '../components/BlockedWebsiteScreen';
+import SafetyModeScreen from '../components/SafetyModeScreen';
+import AppRequestForm from '../components/AppRequestForm';
 import PrivacyScoreCard from '../components/PrivacyScoreCard';
 import ScreenTimeWidget from '../components/ScreenTimeWidget';
+import { emergencyService, childrenService, websiteRulesService, appApprovalsService } from '../services/apiService';
 import '../styles/Dashboard.css';
+import '../styles/Cards.css';
 
 const ChildDashboard = () => {
   const navigate = useNavigate();
@@ -15,6 +21,14 @@ const ChildDashboard = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [childData, setChildData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [sendingSOS, setSendingSOS] = useState(false);
+  const [deviceStatus, setDeviceStatus] = useState(null);
+  const [showWarning, setShowWarning] = useState(false);
+  const [blockedSite, setBlockedSite] = useState(null);
+  const [activeSOS, setActiveSOS] = useState(null);
+  const [simulatedUrl, setSimulatedUrl] = useState('');
+
+
 
   useEffect(() => {
     // Initialize child data from user or fetch from API
@@ -25,10 +39,73 @@ const ChildDashboard = () => {
         privacyScore: 78,
         screenTime: { used: 45, limit: 60 },
         agreements: 2,
-        location: 'At Home'
+        location: 'At Home',
+        geofences: user.geofences || []
       });
     }
     setLoading(false);
+  }, [user]);
+
+  // Poll device status every minute
+  useEffect(() => {
+    const checkDeviceStatus = async () => {
+      if (!user || !user._id) return;
+
+      try {
+        const childId = user._id || user.id;
+        const response = await childrenService.getDeviceStatus(childId);
+        const status = response.data || response;
+
+        setDeviceStatus(status);
+        setShowWarning(status.shouldWarn);
+
+        // Update screen time display with current limit
+        if (status.currentLimit) {
+          setChildData(prev => ({
+            ...prev,
+            screenTime: {
+              used: status.totalTimeUsed || prev.screenTime.used,
+              limit: status.currentLimit
+            }
+          }));
+        }
+      } catch (err) {
+        console.error('Failed to check device status', err);
+      }
+    };
+
+    // Check immediately
+    checkDeviceStatus();
+
+    // Then check every minute
+    const interval = setInterval(checkDeviceStatus, 60000);
+
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Check for active SOS status
+  useEffect(() => {
+    const checkSOS = async () => {
+      if (!user?._id && !user?.id) return;
+      try {
+        const childId = user._id || user.id;
+        const res = await emergencyService.getAlerts(childId);
+        const active = res.data?.find(a => !a.resolved);
+        if (active) {
+          setActiveSOS(active);
+        } else {
+          setActiveSOS(null);
+        }
+      } catch (err) {
+        console.error('Failed to check SOS', err);
+      }
+    };
+
+    if (user) {
+      checkSOS(); // Check immediately
+      const interval = setInterval(checkSOS, 10000); // Poll every 10s
+      return () => clearInterval(interval);
+    }
   }, [user]);
 
   const handleLogout = async () => {
@@ -36,8 +113,45 @@ const ChildDashboard = () => {
     navigate('/');
   };
 
-  const handleSOS = () => {
-    notify.warning('🆘 SOS Alert sent to parents with your location!');
+  const handleSOS = async () => {
+    try {
+      setSendingSOS(true);
+      const childId = user._id || user.id;
+
+      let lat = 0;
+      let lng = 0;
+
+      // Try to get fresh location if possible
+      if ('geolocation' in navigator) {
+        try {
+          const pos = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3000 });
+          });
+          lat = pos.coords.latitude;
+          lng = pos.coords.longitude;
+        } catch (locErr) {
+          console.warn('Could not get fresh location for SOS', locErr);
+        }
+      }
+
+      // Send SOS
+      await emergencyService.sendSOS(childId, {
+        latitude: lat,
+        longitude: lng,
+        message: 'Child triggered SOS Emergency Alert'
+      });
+
+      notify.warning('🆘 SOS Alert sent to parents with your location!');
+      // Immediately check to activate Safety Mode screen
+      const res = await emergencyService.getAlerts(childId);
+      const active = res.data?.find(a => !a.resolved);
+      if (active) setActiveSOS(active);
+    } catch (err) {
+      console.error('Failed to send SOS', err);
+      notify.error('Failed to send SOS alert. Please try calling your parents directly!');
+    } finally {
+      setSendingSOS(false);
+    }
   };
 
   const handleAgreeRule = () => {
@@ -48,12 +162,96 @@ const ChildDashboard = () => {
     notify.info('Rule decline recorded');
   };
 
+
+
+
+
+  const handleSimulateVisit = async (e) => {
+    e.preventDefault();
+    if (!simulatedUrl) return;
+
+    try {
+      const childId = user._id || user.id;
+      const res = await websiteRulesService.checkAccess(childId, simulatedUrl);
+      const data = res.data;
+
+      if (data.blocked) {
+        setBlockedSite({
+          website: simulatedUrl,
+          reason: data.reason,
+          category: data.category
+        });
+      } else {
+        notify.success(`Access allowed to ${simulatedUrl}`);
+        setSimulatedUrl('');
+      }
+    } catch (err) {
+      console.error('Check failed', err);
+    }
+  };
+
+  const handleRequestSiteAccess = async () => {
+    try {
+      // Create an app approval request as a proxy for website access request
+      // In a real app, we'd have a separate endpoint
+      const childId = user._id || user.id;
+      await appApprovalsService.requestApproval(childId, {
+        appName: `Website: ${blockedSite.website}`,
+        appCategory: 'other',
+        requestReason: 'I need to access this website'
+      });
+      notify.success('Access request sent to parent');
+      setBlockedSite(null);
+      setSimulatedUrl('');
+    } catch (err) {
+      notify.error('Failed to send request');
+    }
+  };
+
   if (loading || !childData) {
     return (
       <div className="loading-container">
         <div className="spinner"></div>
         <p>Loading your dashboard...</p>
       </div>
+    );
+  }
+
+  // Show active safety mode screen (HIGHEST PRIORITY)
+  if (activeSOS) {
+    return (
+      <SafetyModeScreen
+        alert={activeSOS}
+        childId={user._id || user.id}
+      />
+    );
+  }
+
+  // Show lock screen if device is locked
+  if (deviceStatus && deviceStatus.isLocked) {
+    return (
+      <DeviceLockScreen
+        lockReason={deviceStatus.lockReason}
+        warningMessage={deviceStatus.warningMessage}
+        bedtimeEnd={childData.bedtimeEnd || '06:00'}
+        remainingTime={deviceStatus.remainingTime}
+      />
+    );
+  }
+
+  // Show blocked website screen if active
+  if (blockedSite) {
+    return (
+      <BlockedWebsiteScreen
+        website={blockedSite.website}
+        reason={blockedSite.reason}
+        category={blockedSite.category}
+        onRequestAccess={handleRequestSiteAccess}
+        onGoHome={() => {
+          setBlockedSite(null);
+          setSimulatedUrl('');
+        }}
+      />
     );
   }
 
@@ -79,19 +277,20 @@ const ChildDashboard = () => {
               <Clock size={20} />
               <span>Screen Time</span>
             </button>
-            <button
-              className={`nav-item ${activeTab === 'location' ? 'active' : ''}`}
-              onClick={() => setActiveTab('location')}
-            >
-              <MapPin size={20} />
-              <span>My Location</span>
-            </button>
+
             <button
               className={`nav-item ${activeTab === 'rules' ? 'active' : ''}`}
               onClick={() => setActiveTab('rules')}
             >
               <BookOpen size={20} />
               <span>My Rules</span>
+            </button>
+            <button
+              className={`nav-item ${activeTab === 'requests' ? 'active' : ''}`}
+              onClick={() => setActiveTab('requests')}
+            >
+              <RefreshCw size={20} />
+              <span>App Requests</span>
             </button>
             <button
               className={`nav-item ${activeTab === 'privacy' ? 'active' : ''}`}
@@ -102,9 +301,13 @@ const ChildDashboard = () => {
             </button>
           </nav>
 
-          <button className="sos-btn" onClick={handleSOS}>
+          <button
+            className={`sos-btn ${sendingSOS ? 'loading' : ''}`}
+            onClick={handleSOS}
+            disabled={sendingSOS}
+          >
             <span className="sos-text">🆘 SOS</span>
-            <span>Emergency Alert</span>
+            <span>{sendingSOS ? 'Sending...' : 'Emergency Alert'}</span>
           </button>
         </aside>
 
@@ -116,6 +319,50 @@ const ChildDashboard = () => {
                 <h1>Welcome, {childData.name}! 👋</h1>
                 <p>Have a great day online!</p>
               </div>
+
+              {/* Website Simulator for Demo */}
+              <div className="card website-simulator" style={{ marginTop: '20px', marginBottom: '20px', border: '2px dashed #3b82f6' }}>
+                <h3>🌐 Website Access Simulator</h3>
+                <p>Enter a URL to test if it's blocked by your parental controls.</p>
+                <form onSubmit={handleSimulateVisit} style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                  <input
+                    type="text"
+                    value={simulatedUrl}
+                    onChange={(e) => setSimulatedUrl(e.target.value)}
+                    placeholder="e.g., youtube.com"
+                    style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }}
+                  />
+                  <button type="submit" className="btn btn-primary">Go</button>
+                </form>
+              </div>
+
+              {/* Warning Banner when time is running out */}
+              {showWarning && deviceStatus && (
+                <div className="warning-banner" style={{
+                  background: 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)',
+                  color: 'white',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  marginBottom: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px',
+                  boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)',
+                  animation: 'pulse 2s ease-in-out infinite'
+                }}>
+                  <AlertCircle size={32} />
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>
+                      {deviceStatus.warningMessage || `⚠️ Only ${deviceStatus.remainingTime} minutes left!`}
+                    </h3>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '14px', opacity: 0.9 }}>
+                      {deviceStatus.isHomeworkHours
+                        ? '📚 Homework hours are active - educational apps are still available'
+                        : 'Time to wrap up your activities soon!'}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Digital Wellbeing Tips */}
               <div className="wellbeing-tip">
@@ -138,7 +385,7 @@ const ChildDashboard = () => {
                       <span className="t-icon">👁️</span>
                       <div>
                         <strong>What Parents See</strong>
-                        <p>App Usage, Screen Time, Location</p>
+                        <p>App Usage, Screen Time</p>
                       </div>
                     </div>
                     <div className="transparency-item private">
@@ -158,13 +405,39 @@ const ChildDashboard = () => {
                     <h3>Ask Parents</h3>
                   </div>
                   <div className="quick-actions">
-                    <button className="action-btn" onClick={() => notify.info('Request for more time sent!')}>
+                    <button className="action-btn" onClick={async () => {
+                      try {
+                        const childId = user._id || user.id;
+                        await appApprovalsService.requestApproval(childId, {
+                          appName: 'Additional Screen Time',
+                          appCategory: 'other',
+                          requestReason: 'I need some more time to finish my work'
+                        });
+                        notify.success('Request for more time sent!');
+                      } catch (err) {
+                        notify.error('Failed to send request');
+                      }
+                    }}>
                       <span>⏱️</span> More Time
                     </button>
-                    <button className="action-btn" onClick={() => notify.info('Request to unblock app sent!')}>
+                    <button className="action-btn" onClick={async () => {
+                      try {
+                        const childId = user._id || user.id;
+                        // Prompt for app name if not specified
+                        const appName = prompt('Which app would you like to unblock?') || 'App Access';
+                        await appApprovalsService.requestApproval(childId, {
+                          appName: appName,
+                          appCategory: 'entertainment',
+                          requestReason: 'Please unblock this app for me'
+                        });
+                        notify.success('Request to unblock app sent!');
+                      } catch (err) {
+                        notify.error('Failed to send request');
+                      }
+                    }}>
                       <span>🔓</span> Unblock App
                     </button>
-                    <button className="action-btn" onClick={() => notify.info('Message sent to parents!')}>
+                    <button className="action-btn" onClick={() => notify.info('This feature will allow you to chat with your parents soon!')}>
                       <span>💬</span> Send Message
                     </button>
                   </div>
@@ -179,17 +452,7 @@ const ChildDashboard = () => {
                   limit={childData.screenTime.limit}
                 />
 
-                {/* Location Status (Existing) */}
-                <div className="card location-status">
-                  <div className="card-header">
-                    <MapPin size={24} />
-                    <h3>My Location</h3>
-                  </div>
-                  <div className="location-info">
-                    <div className="location-badge">{childData.location}</div>
-                    <p className="location-time">Last updated: Just now</p>
-                  </div>
-                </div>
+
 
                 {/* Notifications (Existing) */}
                 <div className="card notifications-card">
@@ -249,23 +512,13 @@ const ChildDashboard = () => {
             </div>
           )}
 
-          {activeTab === 'location' && (
-            <div className="tab-content">
-              <h2>📍 My Location</h2>
-              <div className="card">
-                <div className="map-placeholder">
-                  <MapPin size={64} />
-                  <p>Map integration coming soon</p>
-                  <p style={{ fontSize: '0.9em', color: '#999' }}>Current location: {childData.location}</p>
-                </div>
-              </div>
-            </div>
-          )}
+
 
           {activeTab === 'rules' && (
             <div className="tab-content">
               <h2>📋 My Rules & Agreements</h2>
               <div className="rules-grid">
+                {/* Rules content */}
                 <div className="rule-card">
                   <div className="rule-status pending">Pending Agreement</div>
                   <h4>Social Media Limit</h4>
@@ -281,13 +534,14 @@ const ChildDashboard = () => {
                   <h4>Bedtime Internet Cutoff</h4>
                   <p>No internet after 10 PM on school nights</p>
                 </div>
-
-                <div className="rule-card">
-                  <div className="rule-status agreed">Agreed ✓</div>
-                  <h4>Gaming Time Limit</h4>
-                  <p>Maximum 2 hours on weekends</p>
-                </div>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'requests' && (
+            <div className="tab-content">
+              <h2>📲 App Requests</h2>
+              <AppRequestForm childId={user._id || user.id} />
             </div>
           )}
 
@@ -310,7 +564,6 @@ const ChildDashboard = () => {
                       <p>Used to help you stay safe and manage screen time.</p>
                       <ul style={{ fontSize: '12px', margin: '8px 0 0 16px', color: 'var(--text-secondary)' }}>
                         <li>Active app names and usage time</li>
-                        <li>General geographic location</li>
                         <li>Total device unlock count</li>
                       </ul>
                     </div>

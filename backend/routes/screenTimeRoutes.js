@@ -6,14 +6,16 @@ const {
   getDailyScreenTime,
   getScreenTimeHistory,
   pauseInternetAccess,
-  setDailyLimit
+  setDailyLimit,
+  getScreenTimeSettings,
+  updateScreenTimeSettings
 } = require("../controllers/screenTimeController");
 
 // Log app usage
 router.post("/:childId/log", authMiddleware, logAppUsage);
 
 // Get daily screen time
-router.get("/:childId/daily", authMiddleware, getDailyScreenTime);
+router.get("/:childId/usage", authMiddleware, getDailyScreenTime);
 
 // Get screen time history
 router.get("/:childId/history", authMiddleware, getScreenTimeHistory);
@@ -23,5 +25,9 @@ router.post("/:childId/pause", authMiddleware, pauseInternetAccess);
 
 // Set daily screen time limit
 router.post("/:childId/limit", authMiddleware, setDailyLimit);
+
+// Get and update screen time settings
+router.get("/:childId/settings", authMiddleware, getScreenTimeSettings);
+router.put("/:childId/settings", authMiddleware, updateScreenTimeSettings);
 
 module.exports = router;

@@ -1,37 +1,62 @@
-const AppRule = require("../models/AppRule");
 const Notification = require("../models/Notification");
+const Child = require("../models/Child");
+const User = require("../models/User");
+const AppRule = require("../models/AppRule");
 
 // Create an app rule
 exports.createAppRule = async (req, res) => {
   try {
-    const { childId } = req.params;
-    const { appName, appCategory, isBlocked, timeLimit, allowedTimeSlots } = req.body;
+    const { childId, child: childInBody, appName, appPackage, action, timeLimit, allowedStartTime, allowedEndTime, allowedDays } = req.body;
+    const targetChildId = childId || childInBody || req.params.childId;
+
+    if (!targetChildId) {
+      return res.status(400).json({ message: "Child ID is required" });
+    }
+
+    // Map frontend data to back-end schema
+    const isBlocked = action === 'BLOCK';
+    const allowedTimeSlots = allowedDays ? allowedDays.map(day => ({
+      day,
+      startTime: allowedStartTime || "09:00",
+      endTime: allowedEndTime || "21:00"
+    })) : [];
 
     const appRule = new AppRule({
-      child: childId,
+      child: targetChildId,
       parent: req.user.id,
       appName,
-      appCategory,
+      appPackage,
+      appCategory: "other", // Default category
       isBlocked,
-      timeLimit,
+      timeLimit: isBlocked ? null : timeLimit,
       allowedTimeSlots
     });
 
     await appRule.save();
 
+    // Resolve the actual child user if needed for notifications
+    const childRecord = await Child.findById(targetChildId) || await User.findById(targetChildId);
+    let notificationTargetId = targetChildId;
+
+    if (childRecord) {
+      // If child has an email, find their User record to send notification
+      const childUser = await User.findOne({ email: childRecord.email });
+      if (childUser) notificationTargetId = childUser._id;
+    }
+
     // Send notification to child
     const notif = new Notification({
-      child: childId,
-      parent: req.user.id,
+      senderId: req.user.id,
+      receiverId: notificationTargetId,
       type: "app_rule",
       message: `Parent added new app rule for ${appName}`,
-      read: false
+      isRead: false
     });
     await notif.save();
 
     res.status(201).json({ message: "App rule created", appRule });
   } catch (err) {
-    console.error(err);
+    console.error('Error creating app rule:', err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
@@ -52,7 +77,7 @@ exports.getAppRules = async (req, res) => {
 exports.updateAppRule = async (req, res) => {
   try {
     const { ruleId } = req.params;
-    const { appName, appCategory, isBlocked, timeLimit, allowedTimeSlots } = req.body;
+    const { appName, appPackage, action, isBlocked: isBlockedDirect, timeLimit, allowedTimeSlots, allowedDays, allowedStartTime, allowedEndTime } = req.body;
 
     const rule = await AppRule.findById(ruleId);
     if (!rule) return res.status(404).json({ message: "Rule not found" });
@@ -60,22 +85,45 @@ exports.updateAppRule = async (req, res) => {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
-    if (appName !== undefined) rule.appName = appName;
-    if (appCategory !== undefined) rule.appCategory = appCategory;
-    if (isBlocked !== undefined) rule.isBlocked = isBlocked;
-    if (timeLimit !== undefined) rule.timeLimit = timeLimit;
-    if (allowedTimeSlots !== undefined) rule.allowedTimeSlots = allowedTimeSlots;
-    rule.updatedAt = new Date();
+    // Map action to isBlocked if provided
+    let isBlocked = isBlockedDirect;
+    if (action !== undefined) {
+      isBlocked = action === 'BLOCK';
+    }
 
+    if (appName !== undefined) rule.appName = appName;
+    if (appPackage !== undefined) rule.appPackage = appPackage;
+    if (isBlocked !== undefined) rule.isBlocked = isBlocked;
+    if (timeLimit !== undefined) rule.timeLimit = isBlocked ? null : timeLimit;
+
+    if (allowedTimeSlots !== undefined) {
+      rule.allowedTimeSlots = allowedTimeSlots;
+    } else if (allowedDays) {
+      rule.allowedTimeSlots = allowedDays.map(day => ({
+        day,
+        startTime: allowedStartTime || "09:00",
+        endTime: allowedEndTime || "21:00"
+      }));
+    }
+
+    rule.updatedAt = new Date();
     await rule.save();
 
-    // Notify child about rule change
+    // Resolve the actual User ID for the child to ensure notification delivery
+    const childRecord = await Child.findById(rule.child);
+    let notificationTargetId = rule.child;
+    if (childRecord) {
+      const childUser = await User.findOne({ email: childRecord.email });
+      if (childUser) notificationTargetId = childUser._id;
+    }
+
+    // Send notification to child
     const notif = new Notification({
-      child: rule.child,
-      parent: req.user.id,
+      senderId: req.user.id,
+      receiverId: notificationTargetId,
       type: "rule_update",
       message: `Parent updated ${appName} rule`,
-      read: false
+      isRead: false
     });
     await notif.save();
 

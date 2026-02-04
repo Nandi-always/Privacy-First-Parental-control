@@ -5,7 +5,8 @@ const {
   updateLocation,
   getLiveLocation,
   getLocationHistory,
-  getLocationStats
+  getLocationStats,
+  updateGeofence
 } = require("../controllers/locationController");
 
 // Update live location
@@ -19,5 +20,8 @@ router.get("/:childId/history", authMiddleware, getLocationHistory);
 
 // Get location statistics
 router.get("/:childId/stats", authMiddleware, getLocationStats);
+
+// Update geofence settings
+router.post("/geofence", authMiddleware, updateGeofence);
 
 module.exports = router;

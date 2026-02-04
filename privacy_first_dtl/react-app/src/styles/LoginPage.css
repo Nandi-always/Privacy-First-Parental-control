@@ -141,6 +141,92 @@
   text-shadow: 0 0 8px var(--accent-glow);
 }
 
+.nav-link-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+  font-family: inherit;
+}
+
+.nav-link-btn:hover {
+  color: var(--accent-primary);
+  text-shadow: 0 0 8px var(--accent-glow);
+}
+
+/* Features Modal Styles (Classic) */
+.features-modal-content {
+  padding: 10px 0;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.feature-item-v2 {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.feature-item-v2:hover {
+  background: #f9fafb;
+  border-color: #3b82f6;
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.feature-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.classic-icon {
+  color: #3b82f6;
+}
+
+.feature-item-v2 h3 {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: #1f2937;
+  letter-spacing: -0.025em;
+}
+
+.feature-item-v2 p {
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.about-modal-content,
+.contact-modal-content {
+  color: #374151;
+  line-height: 1.7;
+}
+
+.about-modal-content p,
+.contact-modal-content p {
+  margin-bottom: 16px;
+  font-size: 15px;
+}
+
 /* Hero Section */
 .login-hero {
   flex: 1;

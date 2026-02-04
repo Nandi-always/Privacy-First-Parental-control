@@ -91,7 +91,15 @@ const AppRulesManager = ({ childId }) => {
 
   const handleEdit = (rule) => {
     setEditingRule(rule);
-    setFormData(rule);
+    // Map backend data to form data
+    const mappedData = {
+      ...rule,
+      action: rule.isBlocked ? 'BLOCK' : 'LIMIT',
+      allowedDays: rule.allowedTimeSlots?.map(ts => ts.day) || [],
+      allowedStartTime: rule.allowedTimeSlots?.[0]?.startTime || '09:00',
+      allowedEndTime: rule.allowedTimeSlots?.[0]?.endTime || '21:00'
+    };
+    setFormData(mappedData);
     setShowForm(true);
   };
 
@@ -115,7 +123,7 @@ const AppRulesManager = ({ childId }) => {
     <div className="card app-rules-manager">
       <div className="card-header">
         <h3>📱 App Rules</h3>
-        <button 
+        <button
           className="btn btn-primary"
           onClick={() => setShowForm(!showForm)}
         >
@@ -213,8 +221,8 @@ const AppRulesManager = ({ childId }) => {
             <button type="submit" className="btn btn-success">
               {editingRule ? 'Update Rule' : 'Create Rule'}
             </button>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="btn btn-secondary"
               onClick={resetForm}
             >
@@ -234,27 +242,27 @@ const AppRulesManager = ({ childId }) => {
             <div key={rule._id} className="rule-item">
               <div className="rule-info">
                 <div className="rule-header">
-                  {rule.action === 'BLOCK' ? <Ban size={18} /> : <Clock size={18} />}
+                  {rule.isBlocked ? <Ban size={18} /> : <Clock size={18} />}
                   <h4>{rule.appName}</h4>
-                  <span className={`rule-badge ${rule.action.toLowerCase()}`}>
-                    {rule.action === 'BLOCK' ? '🚫 Blocked' : '⏱️ Limited'}
+                  <span className={`rule-badge ${rule.isBlocked ? 'block' : 'limit'}`}>
+                    {rule.isBlocked ? '🚫 Blocked' : '⏱️ Limited'}
                   </span>
                 </div>
-                {rule.action === 'LIMIT' && (
+                {!rule.isBlocked && (
                   <p className="rule-details">
-                    {rule.timeLimit} mins • {rule.allowedStartTime}-{rule.allowedEndTime}
+                    {rule.timeLimit} mins • {rule.allowedTimeSlots?.[0]?.startTime || '09:00'}-{rule.allowedTimeSlots?.[0]?.endTime || '21:00'}
                   </p>
                 )}
               </div>
               <div className="rule-actions">
-                <button 
+                <button
                   className="btn-icon edit"
                   onClick={() => handleEdit(rule)}
                   title="Edit"
                 >
                   <Edit2 size={16} />
                 </button>
-                <button 
+                <button
                   className="btn-icon delete"
                   onClick={() => handleDelete(rule._id)}
                   title="Delete"

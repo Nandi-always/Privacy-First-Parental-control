@@ -14,25 +14,25 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route 
-        path="/" 
-        element={user ? <Navigate to={user.role === 'parent' ? '/parent-dashboard' : '/child-dashboard'} /> : <LoginPage />} 
+      <Route
+        path="/"
+        element={user ? <Navigate to={user.role === 'parent' ? '/parent-dashboard' : '/child-dashboard'} /> : <LoginPage />}
       />
-      <Route 
-        path="/parent-dashboard" 
+      <Route
+        path="/parent-dashboard"
         element={
           <ProtectedRoute requiredRole="parent">
             <ParentDashboard />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/child-dashboard" 
+      <Route
+        path="/child-dashboard"
         element={
           <ProtectedRoute requiredRole="child">
             <ChildDashboard />
           </ProtectedRoute>
-        } 
+        }
       />
     </Routes>
   );

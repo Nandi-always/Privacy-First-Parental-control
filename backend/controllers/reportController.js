@@ -2,6 +2,20 @@ const ScreenTime = require("../models/ScreenTime");
 const AppRule = require("../models/AppRule");
 const AppDownloadAlert = require("../models/AppDownloadAlert");
 const Location = require("../models/Location");
+const Child = require("../models/Child");
+const User = require("../models/User");
+
+// Helper to resolve childId (can be from Child or User collection) to User ID
+async function resolveToUserId(childId) {
+  try {
+    const child = await Child.findById(childId);
+    if (child) {
+      const user = await User.findOne({ email: child.email });
+      return user ? user._id : childId;
+    }
+  } catch (e) { }
+  return childId;
+}
 
 // Get daily activity summary
 exports.getDailyActivitySummary = async (req, res) => {
@@ -10,15 +24,16 @@ exports.getDailyActivitySummary = async (req, res) => {
     const { date } = req.query;
 
     const queryDate = new Date(date || new Date()).toDateString();
+    const userId = await resolveToUserId(childId);
 
     const screenTime = await ScreenTime.findOne({
-      child: childId,
+      child: userId,
       parent: req.user.id,
       date: queryDate
     });
 
     const downloads = await AppDownloadAlert.find({
-      child: childId,
+      child: userId,
       parent: req.user.id,
       downloadTime: {
         $gte: new Date(queryDate),
@@ -27,7 +42,7 @@ exports.getDailyActivitySummary = async (req, res) => {
     });
 
     const location = await Location.findOne({
-      child: childId,
+      child: userId,
       parent: req.user.id,
       timestamp: {
         $gte: new Date(queryDate),
@@ -60,9 +75,10 @@ exports.getWeeklyInsights = async (req, res) => {
 
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - 7);
+    const userId = await resolveToUserId(childId);
 
     const screenTimes = await ScreenTime.find({
-      child: childId,
+      child: userId,
       parent: req.user.id,
       date: { $gte: startDate }
     }).sort({ date: 1 });
@@ -86,7 +102,7 @@ exports.getWeeklyInsights = async (req, res) => {
       dailyBreakdown: dailyData,
       statistics: {
         totalScreenTime: totalTime,
-        averageDaily: avgDay,
+        averageDaily: avgTime,
         highestUsageDay: maxDay ? { date: maxDay[0], time: maxDay[1].totalTime } : null,
         lowestUsageDay: Object.entries(dailyData).sort((a, b) => a[1].totalTime - b[1].totalTime)[0]
       }
@@ -104,21 +120,22 @@ exports.get30DayReport = async (req, res) => {
 
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - 30);
+    const userId = await resolveToUserId(childId);
 
     const screenTimes = await ScreenTime.find({
-      child: childId,
+      child: userId,
       parent: req.user.id,
       date: { $gte: startDate }
     }).sort({ date: 1 });
 
     const downloads = await AppDownloadAlert.find({
-      child: childId,
+      child: userId,
       parent: req.user.id,
       downloadTime: { $gte: startDate }
     });
 
     const locations = await Location.find({
-      child: childId,
+      child: userId,
       parent: req.user.id,
       timestamp: { $gte: startDate }
     });
@@ -161,21 +178,22 @@ exports.getRealtimeStatus = async (req, res) => {
     const { childId } = req.params;
 
     const today = new Date().toDateString();
+    const userId = await resolveToUserId(childId);
 
     const screenTime = await ScreenTime.findOne({
-      child: childId,
+      child: userId,
       parent: req.user.id,
       date: today
     });
 
     const location = await Location.findOne({
-      child: childId,
+      child: userId,
       parent: req.user.id,
       isLive: true
     });
 
     const appRules = await AppRule.find({
-      child: childId,
+      child: userId,
       parent: req.user.id
     });
 
@@ -188,7 +206,7 @@ exports.getRealtimeStatus = async (req, res) => {
       activeRules: appRules.length,
       stats: {
         totalTime: screenTime?.totalTime || 0,
-        remainingTime: Math.max(0, require("../models/Child").findById(childId).dailyScreenTimeLimit - (screenTime?.totalTime || 0))
+        remainingTime: Math.max(0, ((await require("../models/Child").findById(childId))?.dailyScreenTimeLimit || 480) - (screenTime?.totalTime || 0))
       }
     });
   } catch (err) {
