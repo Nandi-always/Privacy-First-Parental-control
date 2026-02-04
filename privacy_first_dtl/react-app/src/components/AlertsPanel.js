@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { AlertCircle, Check, X, Clock } from 'lucide-react';
-import { emergencyService, downloadsService } from '../services/apiService';
+import { AlertCircle, Check, X, Clock, Shield, Ban, MapPin } from 'lucide-react';
+import { alertsService } from '../services/apiService';
 import '../styles/Cards.css';
 
 const AlertsPanel = ({ child }) => {
@@ -14,34 +14,27 @@ const AlertsPanel = ({ child }) => {
     try {
       setLoading(true);
       const childId = child._id || child.id;
-      
-      // Fetch emergency alerts
-      const emergencyRes = await emergencyService.getAlerts(childId);
-      const emergencyAlerts = emergencyRes?.data?.map(alert => ({
-        id: alert._id || alert.id,
-        type: 'emergency',
-        message: alert.message || 'Emergency alert triggered',
-        severity: 'danger',
-        time: alert.timestamp ? formatTime(alert.timestamp) : 'Recently'
-      })) || [];
 
-      // Fetch app download alerts
-      const downloadRes = await downloadsService.getAlerts(childId);
-      const downloadAlerts = downloadRes?.data?.map(alert => ({
-        id: alert._id || alert.id,
-        type: 'app',
-        message: `App ${alert.status === 'pending' ? 'install' : 'access'} request: ${alert.appName}`,
-        severity: alert.status === 'pending' ? 'warning' : 'info',
-        time: alert.timestamp ? formatTime(alert.timestamp) : 'Recently'
-      })) || [];
+      // Fetch alerts from new alerts API
+      const res = await alertsService.getAll(childId);
+      const alertsData = res?.data || [];
 
-      // Combine and limit to 5 most recent
-      const combinedAlerts = [...emergencyAlerts, ...downloadAlerts].slice(0, 5);
-      setAlerts(combinedAlerts.length > 0 ? combinedAlerts : getMockAlerts());
+      // Format alerts for display
+      const formattedAlerts = alertsData.map(alert => ({
+        id: alert._id || alert.id,
+        type: alert.type,
+        message: alert.message || alert.title,
+        severity: alert.severity || 'info',
+        time: alert.createdAt ? formatTime(alert.createdAt) : 'Recently',
+        isRead: alert.isRead
+      }));
+
+      // Show formatted alerts or demo alerts
+      setAlerts(formattedAlerts.length > 0 ? formattedAlerts : getDemoAlerts());
     } catch (err) {
       console.error('Failed to fetch alerts', err);
-      // Use mock alerts on error
-      setAlerts(getMockAlerts());
+      // Use demo alerts on error for presentation
+      setAlerts(getDemoAlerts());
     } finally {
       setLoading(false);
     }
@@ -54,16 +47,17 @@ const AlertsPanel = ({ child }) => {
     return () => clearInterval(interval);
   }, [fetchAlerts]);
 
-  const getMockAlerts = () => [
-    { id: 1, type: 'screentime', message: 'Screen time limit approaching', severity: 'warning', time: '2 hours ago' },
-    { id: 2, type: 'location', message: 'Child activity detected', severity: 'info', time: '30 minutes ago' },
+  const getDemoAlerts = () => [
+    { id: 'demo1', type: 'screen_time_warning', message: 'Screen time approaching limit - 30 mins left', severity: 'warning', time: '15 mins ago', isRead: false },
+    { id: 'demo2', type: 'app_blocked', message: 'YouTube blocked during school hours', severity: 'info', time: '2 hours ago', isRead: true },
+    { id: 'demo3', type: 'bedtime', message: 'Bedtime mode activated', severity: 'info', time: '1 day ago', isRead: true },
   ];
 
   const formatTime = (timestamp) => {
     const date = new Date(timestamp);
     const now = new Date();
     const diffMinutes = Math.floor((now - date) / 60000);
-    
+
     if (diffMinutes < 1) return 'just now';
     if (diffMinutes < 60) return `${diffMinutes}m ago`;
     if (diffMinutes < 1440) return `${Math.floor(diffMinutes / 60)}h ago`;
@@ -110,7 +104,7 @@ const AlertsPanel = ({ child }) => {
                 </div>
                 <span className="alert-time">{alert.time}</span>
               </div>
-              <button 
+              <button
                 className="alert-dismiss"
                 onClick={() => handleDismiss(alert.id)}
                 title="Dismiss alert"
@@ -129,7 +123,7 @@ const AlertsPanel = ({ child }) => {
       )}
 
       {dismissedAlerts.length > 0 && (
-        <button 
+        <button
           className="clear-dismissed-btn"
           onClick={() => setDismissedAlerts([])}
         >

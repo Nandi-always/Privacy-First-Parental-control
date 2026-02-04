@@ -163,7 +163,7 @@ const ParentDashboard = () => {
                     {/* Screen Time Widget */}
                     <ScreenTimeCard
                       child={selectedChild}
-                      onEdit={() => notify.info('Edit screen time functionality coming soon')}
+                      onEdit={() => setActiveTab('settings')}
                     />
 
                     {/* Activity Report */}

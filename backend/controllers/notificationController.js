@@ -58,3 +58,31 @@ exports.markAsRead = async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 };
+
+// Delete Notification
+exports.deleteNotification = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+
+        console.log('🗑️ Deleting notification:', { id, userId });
+
+        // Security check: ensure notification belongs to the user
+        const notification = await Notification.findOne({
+            _id: id,
+            receiverId: userId
+        });
+
+        if (!notification) {
+            console.error('❌ Notification not found or unauthorized');
+            return res.status(404).json({ message: "Notification not found" });
+        }
+
+        await Notification.findByIdAndDelete(id);
+        console.log('✅ Notification deleted successfully');
+        res.status(200).json({ message: "Notification deleted successfully" });
+    } catch (err) {
+        console.error('❌ Error deleting notification:', err.message);
+        res.status(500).json({ message: "Server error" });
+    }
+};

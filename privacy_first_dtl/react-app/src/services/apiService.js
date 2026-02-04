@@ -52,6 +52,8 @@ export const notificationsService = {
     apiClient.post('/notifications/send', data),
   markAsRead: (id) =>
     apiClient.put(`/notifications/${id}/read`),
+  delete: (id) =>
+    apiClient.delete(`/notifications/${id}`),
 };
 
 export const childrenService = {
@@ -68,12 +70,38 @@ export const childrenService = {
 };
 
 export const screenTimeService = {
-  get: (childId) =>
-    apiClient.get(API_ENDPOINTS.SCREEN_TIME.GET(childId)),
+  getDaily: (childId) =>
+    apiClient.get(API_ENDPOINTS.SCREEN_TIME.GET_DAILY(childId)),
+  getHistory: (childId, days = 7) =>
+    apiClient.get(API_ENDPOINTS.SCREEN_TIME.GET_HISTORY(childId), { params: { days } }),
+  logUsage: (childId, data) =>
+    apiClient.post(API_ENDPOINTS.SCREEN_TIME.LOG_USAGE(childId), data),
   setLimit: (childId, limit) =>
-    apiClient.post(API_ENDPOINTS.SCREEN_TIME.SET_LIMIT, { childId, limit }),
+    apiClient.post(API_ENDPOINTS.SCREEN_TIME.SET_LIMIT(childId), { limit }),
+  pause: (childId, isPaused) =>
+    apiClient.post(API_ENDPOINTS.SCREEN_TIME.PAUSE(childId), { isPaused }),
+  // Legacy compatibility
+  get: (childId) =>
+    apiClient.get(API_ENDPOINTS.SCREEN_TIME.GET_DAILY(childId)),
   getUsage: (childId) =>
-    apiClient.get(API_ENDPOINTS.SCREEN_TIME.GET_USAGE(childId)),
+    apiClient.get(API_ENDPOINTS.SCREEN_TIME.GET_HISTORY(childId)),
+  update: (childId, formData) =>
+    apiClient.post(API_ENDPOINTS.SCREEN_TIME.SET_LIMIT(childId), { limit: formData.dailyLimit }),
+};
+
+export const alertsService = {
+  getAll: (childId) =>
+    apiClient.get(API_ENDPOINTS.ALERTS.GET_ALL, { params: { childId } }),
+  getUnreadCount: () =>
+    apiClient.get(API_ENDPOINTS.ALERTS.GET_UNREAD_COUNT),
+  create: (data) =>
+    apiClient.post(API_ENDPOINTS.ALERTS.CREATE, data),
+  markAsRead: (id) =>
+    apiClient.put(API_ENDPOINTS.ALERTS.MARK_READ(id)),
+  acknowledge: (id) =>
+    apiClient.put(API_ENDPOINTS.ALERTS.ACKNOWLEDGE(id)),
+  delete: (id) =>
+    apiClient.delete(API_ENDPOINTS.ALERTS.DELETE(id)),
 };
 
 export const rulesService = {

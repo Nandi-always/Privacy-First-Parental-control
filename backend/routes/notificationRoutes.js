@@ -4,6 +4,7 @@ const {
     sendNotification,
     getNotifications,
     markAsRead,
+    deleteNotification,
 } = require("../controllers/notificationController");
 const auth = require("../middleware/authMiddleware");
 
@@ -18,5 +19,8 @@ router.post("/send", sendNotification);
 
 // Mark as read
 router.put("/:id/read", markAsRead);
+
+// Delete notification
+router.delete("/:id", deleteNotification);
 
 module.exports = router;

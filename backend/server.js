@@ -27,6 +27,7 @@ app.use("/api/location", require("./routes/locationRoutes"));
 app.use("/api/downloads", require("./routes/downloadAlertRoutes"));
 app.use("/api/reports", require("./routes/reportRoutes"));
 app.use("/api/notifications", require("./routes/notificationRoutes"));
+app.use("/api/alerts", require("./routes/alertRoutes"));
 
 // Test route
 app.get("/", (req, res) => {

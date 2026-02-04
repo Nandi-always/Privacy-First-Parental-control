@@ -36,6 +36,17 @@ const NotificationPanel = ({ isOpen, onClose, userRole }) => {
         }
     };
 
+    const handleDelete = async (id) => {
+        try {
+            await notificationsService.delete(id);
+            // Remove notification from local state immediately
+            setNotifications(prev => prev.filter(n => n._id !== id));
+        } catch (err) {
+            console.error('Failed to delete notification', err);
+            alert('Failed to delete notification');
+        }
+    };
+
     const getIcon = (type) => {
         switch (type) {
             case 'emergency': return <ShieldAlert size={18} className="icon-emergency" />;
@@ -70,15 +81,24 @@ const NotificationPanel = ({ isOpen, onClose, userRole }) => {
                                             {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </span>
                                     </div>
-                                    {!n.isRead && (
+                                    <div className="notification-actions">
+                                        {!n.isRead && (
+                                            <button
+                                                className="mark-read-btn"
+                                                onClick={() => handleMarkRead(n._id)}
+                                                title="Mark as read"
+                                            >
+                                                <Check size={16} />
+                                            </button>
+                                        )}
                                         <button
-                                            className="mark-read-btn"
-                                            onClick={() => handleMarkRead(n._id)}
-                                            title="Mark as read"
+                                            className="delete-btn"
+                                            onClick={() => handleDelete(n._id)}
+                                            title="Delete notification"
                                         >
-                                            <Check size={16} />
+                                            <Trash2 size={16} />
                                         </button>
-                                    )}
+                                    </div>
                                 </div>
                             ))}
                         </div>
