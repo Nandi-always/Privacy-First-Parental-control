@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Clock, MapPin, BookOpen, AlertCircle, Home, RefreshCw } from 'lucide-react';
+import { Shield, Clock, BookOpen, AlertCircle, Home, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import ChildHeader from '../components/ChildHeader';
@@ -10,7 +10,7 @@ import SafetyModeScreen from '../components/SafetyModeScreen';
 import AppRequestForm from '../components/AppRequestForm';
 import PrivacyScoreCard from '../components/PrivacyScoreCard';
 import ScreenTimeWidget from '../components/ScreenTimeWidget';
-import { locationService, emergencyService, childrenService, websiteRulesService, appApprovalsService } from '../services/apiService';
+import { emergencyService, childrenService, websiteRulesService, appApprovalsService } from '../services/apiService';
 import '../styles/Dashboard.css';
 import '../styles/Cards.css';
 
@@ -21,8 +21,6 @@ const ChildDashboard = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [childData, setChildData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [reportLocation, setReportLocation] = useState({ latitude: null, longitude: null });
-  const [reporting, setReporting] = useState(false);
   const [sendingSOS, setSendingSOS] = useState(false);
   const [deviceStatus, setDeviceStatus] = useState(null);
   const [showWarning, setShowWarning] = useState(false);
@@ -120,11 +118,11 @@ const ChildDashboard = () => {
       setSendingSOS(true);
       const childId = user._id || user.id;
 
-      let lat = reportLocation?.latitude || 0;
-      let lng = reportLocation?.longitude || 0;
+      let lat = 0;
+      let lng = 0;
 
       // Try to get fresh location if possible
-      if (!reportLocation && 'geolocation' in navigator) {
+      if ('geolocation' in navigator) {
         try {
           const pos = await new Promise((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3000 });
@@ -166,32 +164,7 @@ const ChildDashboard = () => {
 
 
 
-  const handleReportLocation = async () => {
-    if (!reportLocation || reportLocation.latitude === null || reportLocation.longitude === null) {
-      notify.error('Please enter both latitude and longitude or use GPS');
-      return;
-    }
 
-    try {
-      setReporting(true);
-      const childId = user._id || user.id;
-      await locationService.updateLocation(childId, {
-        latitude: reportLocation.latitude,
-        longitude: reportLocation.longitude,
-        address: 'Manual Check-in',
-        accuracy: 5
-      });
-
-      notify.success('Location reported successfully!');
-      setChildData(prev => ({ ...prev, location: 'Manual Check-in' }));
-    } catch (err) {
-      console.error('Failed to report location', err);
-      const errorMsg = err.response?.data?.message || 'Failed to report location to parents';
-      notify.error(errorMsg);
-    } finally {
-      setReporting(false);
-    }
-  };
 
   const handleSimulateVisit = async (e) => {
     e.preventDefault();
@@ -304,13 +277,7 @@ const ChildDashboard = () => {
               <Clock size={20} />
               <span>Screen Time</span>
             </button>
-            <button
-              className={`nav-item ${activeTab === 'location' ? 'active' : ''}`}
-              onClick={() => setActiveTab('location')}
-            >
-              <MapPin size={20} />
-              <span>My Location</span>
-            </button>
+
             <button
               className={`nav-item ${activeTab === 'rules' ? 'active' : ''}`}
               onClick={() => setActiveTab('rules')}
@@ -418,7 +385,7 @@ const ChildDashboard = () => {
                       <span className="t-icon">👁️</span>
                       <div>
                         <strong>What Parents See</strong>
-                        <p>App Usage, Screen Time, Location</p>
+                        <p>App Usage, Screen Time</p>
                       </div>
                     </div>
                     <div className="transparency-item private">
@@ -485,17 +452,7 @@ const ChildDashboard = () => {
                   limit={childData.screenTime.limit}
                 />
 
-                {/* Location Status (Existing) */}
-                <div className="card location-status">
-                  <div className="card-header">
-                    <MapPin size={24} />
-                    <h3>My Location</h3>
-                  </div>
-                  <div className="location-info">
-                    <div className="location-badge">{childData.location}</div>
-                    <p className="location-time">Last updated: Just now</p>
-                  </div>
-                </div>
+
 
                 {/* Notifications (Existing) */}
                 <div className="card notifications-card">
@@ -555,170 +512,7 @@ const ChildDashboard = () => {
             </div>
           )}
 
-          {activeTab === 'location' && (
-            <div className="tab-content">
-              <h2>📍 Location Transparency</h2>
-              <div className="card transparency-dashboard">
-                <div className="status-banner info">
-                  <Shield size={24} />
-                  <div>
-                    <h4>Privacy-First Geofencing Active</h4>
-                    <p>Live tracking is disabled. Parents only see when you enter or leave safe zones.</p>
-                  </div>
-                </div>
 
-                <div className="active-zones-list">
-                  <h3>Monitored Zones</h3>
-                  {childData.geofences && childData.geofences.length > 0 ? (
-                    childData.geofences.map((zone, idx) => (
-                      <div key={idx} className="zone-transparency-item">
-                        <div className="zone-info">
-                          <MapPin size={18} />
-                          <strong>{zone.name}</strong>
-                          <span className="zone-radius">({zone.radius}m radius)</span>
-                        </div>
-                        <div className="zone-time">
-                          <Clock size={16} />
-                          <span>{zone.startTime || 'Always'} - {zone.endTime || 'Always'}</span>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="no-zones-msg">No active safe zones defined.</p>
-                  )}
-                </div>
-
-                <div className="manual-report-section" style={{ marginTop: '30px' }}>
-                  <h3>Test: Report Specific Location</h3>
-                  <p className="instruction-text">Enter coordinates manually to test the Parent's range alert.</p>
-
-                  <div className="manual-coord-entry" style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-                    <input
-                      type="number"
-                      step="0.0001"
-                      placeholder="Latitude"
-                      className="zone-input"
-                      style={{ flex: 1 }}
-                      value={reportLocation?.latitude ?? ''}
-                      onChange={(e) => {
-                        const val = e.target.value === '' ? null : parseFloat(e.target.value);
-                        setReportLocation(prev => ({ ...(prev || {}), latitude: val }));
-                      }}
-                    />
-                    <input
-                      type="number"
-                      step="0.0001"
-                      placeholder="Longitude"
-                      className="zone-input"
-                      style={{ flex: 1 }}
-                      value={reportLocation?.longitude ?? ''}
-                      onChange={(e) => {
-                        const val = e.target.value === '' ? null : parseFloat(e.target.value);
-                        setReportLocation(prev => ({ ...(prev || {}), longitude: val }));
-                      }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-                    <button
-                      className="btn btn-secondary"
-                      style={{ flex: 3 }}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        if ('geolocation' in navigator) {
-                          notify.info('Accessing GPS...');
-                          navigator.geolocation.getCurrentPosition(
-                            async pos => {
-                              const newLoc = {
-                                latitude: pos.coords.latitude,
-                                longitude: pos.coords.longitude
-                              };
-                              setReportLocation(newLoc);
-                              notify.success('Location acquired! Reporting to parents...');
-
-                              // Automatically report after acquisition
-                              try {
-                                setReporting(true);
-                                const childId = user._id || user.id;
-                                await locationService.updateLocation(childId, {
-                                  ...newLoc,
-                                  address: 'GPS Check-in',
-                                  accuracy: pos.coords.accuracy || 10
-                                });
-                                notify.success('Location reported successfully!');
-                                setChildData(prev => ({ ...prev, location: 'GPS Check-in' }));
-                              } catch (err) {
-                                console.error('Auto-report error:', err);
-                                const errorMsg = err.response?.data?.message || 'Failed to auto-report location';
-                                notify.error(errorMsg);
-                              } finally {
-                                setReporting(false);
-                              }
-                            },
-                            err => {
-                              console.error('Geolocation error:', err);
-                              let msg = err.message;
-                              if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
-                                msg += " (Browser requires HTTPS for GPS access)";
-                              }
-                              notify.error(`Location failed: ${msg}`);
-                            },
-                            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-                          );
-                        } else {
-                          notify.error('Geolocation is not supported by your browser');
-                        }
-                      }}
-                    >
-                      📍 Get Current Location
-                    </button>
-                    <button
-                      className="btn btn-outline"
-                      style={{ flex: 1, fontSize: '12px' }}
-                      title="Simulate location for testing"
-                      onClick={async (e) => {
-                        e.preventDefault();
-                        const simulated = {
-                          latitude: 12.9716 + (Math.random() - 0.5) * 0.05,
-                          longitude: 77.5946 + (Math.random() - 0.5) * 0.05
-                        };
-                        setReportLocation(simulated);
-                        notify.info('Simulated location generated. Reporting...');
-
-                        try {
-                          setReporting(true);
-                          const childId = user._id || user.id;
-                          await locationService.updateLocation(childId, {
-                            ...simulated,
-                            address: 'Simulated Check-in',
-                            accuracy: 5
-                          });
-                          notify.success('Simulated location reported!');
-                          setChildData(prev => ({ ...prev, location: 'Simulated Check-in' }));
-                        } catch (err) {
-                          console.error('Simulated report error:', err);
-                          const errorMsg = err.response?.data?.message || 'Failed to report simulated location';
-                          notify.error(errorMsg);
-                        } finally {
-                          setReporting(false);
-                        }
-                      }}
-                    >
-                      🧪 Simulate
-                    </button>
-                  </div>
-                  <button
-                    className="btn btn-primary"
-                    style={{ width: '100%' }}
-                    onClick={handleReportLocation}
-                    disabled={reporting || !reportLocation}
-                  >
-                    {reporting ? 'Sending Report...' : '📤 Send Manual Report'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
 
           {activeTab === 'rules' && (
             <div className="tab-content">
@@ -770,7 +564,6 @@ const ChildDashboard = () => {
                       <p>Used to help you stay safe and manage screen time.</p>
                       <ul style={{ fontSize: '12px', margin: '8px 0 0 16px', color: 'var(--text-secondary)' }}>
                         <li>Active app names and usage time</li>
-                        <li>General geographic location</li>
                         <li>Total device unlock count</li>
                       </ul>
                     </div>

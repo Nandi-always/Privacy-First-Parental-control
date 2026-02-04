@@ -233,6 +233,31 @@
   color: var(--text-secondary);
 }
 
+.delete-child-btn {
+  opacity: 0;
+  margin-left: auto;
+  padding: 8px;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.child-card:hover .delete-child-btn {
+  opacity: 1;
+}
+
+.delete-child-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger-color);
+  transform: scale(1.1);
+}
+
 .status-badge {
   padding: 4px 12px;
   border-radius: 20px;

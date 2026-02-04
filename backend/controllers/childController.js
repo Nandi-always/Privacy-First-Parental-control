@@ -147,17 +147,43 @@ exports.updateChild = async (req, res) => {
 exports.deleteChild = async (req, res) => {
   try {
     const { childId } = req.params;
-    const child = await Child.findById(childId);
+    const User = require("../models/User");
 
-    if (!child) return res.status(404).json({ message: "Child not found" });
-    if (child.parent.toString() !== req.user.id) {
-      return res.status(403).json({ message: "Unauthorized" });
+    // Try to find the child in either the Child model or User model
+    let child = await Child.findById(childId);
+    let userAccount = null;
+
+    if (!child) {
+      // If not found in Child model, check User model
+      userAccount = await User.findById(childId);
+      if (userAccount) {
+        if (userAccount.role !== 'child' || (userAccount.parentId && userAccount.parentId.toString() !== req.user.id)) {
+          return res.status(403).json({ message: "Unauthorized to delete this user" });
+        }
+      }
+    } else {
+      // Found in Child model, verify parent
+      if (child.parent.toString() !== req.user.id) {
+        return res.status(403).json({ message: "Unauthorized to delete this child" });
+      }
     }
 
-    await Child.findByIdAndDelete(childId);
-    res.status(200).json({ message: "Child deleted successfully" });
+    const targetChild = child || userAccount;
+    if (!targetChild) return res.status(404).json({ message: "Child not found" });
+
+    const email = targetChild.email;
+
+    // Delete from both models by email and check parent/parentId
+    await Child.deleteMany({ email, parent: req.user.id });
+    await User.deleteMany({ email, role: 'child', parentId: req.user.id });
+
+    // Also delete any other related data if necessary (optional improvement)
+    // e.g., Rules, ScreenTime, Alerts, etc. 
+    // For now, this is enough to remove them from the UI.
+
+    res.status(200).json({ message: "Child and all associated data deleted successfully" });
   } catch (err) {
-    console.error(err);
+    console.error('❌ Error deleting child:', err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };

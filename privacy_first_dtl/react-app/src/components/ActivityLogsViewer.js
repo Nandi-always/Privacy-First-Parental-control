@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Clock, Globe, MapPin, EyeOff, Shield, Filter } from 'lucide-react';
+import { Clock, Globe, MapPin, EyeOff, Shield } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import { reportsService, websiteRulesService } from '../services/apiService';
@@ -33,7 +33,7 @@ const ActivityLogsViewer = ({ childId }) => {
         } finally {
             setLoading(false);
         }
-    }, [childId]);
+    }, [childId, notify]);
 
     useEffect(() => {
         fetchActivityData();
@@ -439,3 +439,7 @@ const ActivityLogsViewer = ({ childId }) => {
 };
 
 export default ActivityLogsViewer;
+
+
+
+

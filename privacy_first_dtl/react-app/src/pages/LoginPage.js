@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, User, ArrowRight, Shield, Eye, EyeOff, Users, Baby, MapPin, Clock, ShieldCheck, Zap, BookOpen, ClipboardList } from 'lucide-react';
+import { Lock, Mail, User, ArrowRight, Shield, Eye, EyeOff, Clock, ShieldCheck, Zap, ClipboardList, Globe, BarChart3, LayoutGrid, Wifi, ListChecks } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import Modal from '../components/Modal';
@@ -322,13 +322,7 @@ const LoginPage = () => {
       >
         <div className="features-modal-content">
           <div className="feature-grid">
-            <div className="feature-item-v2">
-              <div className="feature-icon-wrapper">
-                <MapPin size={24} className="classic-icon" />
-              </div>
-              <h3>Privacy-First Geofencing</h3>
-              <p>Safe zones (Home, School) trigger alerts to parents without invasive live tracking. Locations are only shared during SOS events.</p>
-            </div>
+
             <div className="feature-item-v2">
               <div className="feature-icon-wrapper">
                 <Clock size={24} className="classic-icon" />
@@ -359,9 +353,44 @@ const LoginPage = () => {
             </div>
             <div className="feature-item-v2">
               <div className="feature-icon-wrapper">
+                <ListChecks size={24} className="classic-icon" />
+              </div>
+              <h3>App Rules Management</h3>
+              <p>Configure granular permissions and time limits for individual applications to ensure age-appropriate usage.</p>
+            </div>
+            <div className="feature-item-v2">
+              <div className="feature-icon-wrapper">
+                <Globe size={24} className="classic-icon" />
+              </div>
+              <h3>Website Filtering</h3>
+              <p>Block harmful content and manage access to specific web addresses and categories with real-time protection.</p>
+            </div>
+            <div className="feature-item-v2">
+              <div className="feature-icon-wrapper">
+                <BarChart3 size={24} className="classic-icon" />
+              </div>
+              <h3>Activity Logs</h3>
+              <p>Comprehensive reports on app usage, screen time, and digital interactions to stay informed about digital habits.</p>
+            </div>
+            <div className="feature-item-v2">
+              <div className="feature-icon-wrapper">
+                <LayoutGrid size={24} className="classic-icon" />
+              </div>
+              <h3>App Category Control</h3>
+              <p>Group applications into categories like Games or Education to apply broad safety policies across many apps at once.</p>
+            </div>
+            <div className="feature-item-v2">
+              <div className="feature-icon-wrapper">
+                <Wifi size={24} className="classic-icon" />
+              </div>
+              <h3>Internet Control</h3>
+              <p>Instantly pause internet access or schedule "no-wifi" periods for bedtime and study hours to improve focus.</p>
+            </div>
+            <div className="feature-item-v2">
+              <div className="feature-icon-wrapper">
                 <ClipboardList size={24} className="classic-icon" />
               </div>
-              <h3>Mutual Rule Agreements</h3>
+              <h3>Mutual Agreements</h3>
               <p>Parents and children agree on rules together, creating a digital contract that builds trust through shared commitment.</p>
             </div>
           </div>
