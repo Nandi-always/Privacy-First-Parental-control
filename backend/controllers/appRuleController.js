@@ -61,11 +61,43 @@ exports.createAppRule = async (req, res) => {
   }
 };
 
+// Helper to resolve childId (can be from Child or User collection) to User ID
+async function resolveToUserId(childId) {
+  try {
+    const child = await Child.findById(childId);
+    if (child) {
+      const user = await User.findOne({ email: child.email });
+      if (user) {
+        return user._id.toString();
+      }
+    }
+  } catch (e) {
+    // Likely already a User ID
+  }
+  return childId;
+}
+
 // Get all app rules for a child
 exports.getAppRules = async (req, res) => {
   try {
     const { childId } = req.params;
-    const rules = await AppRule.find({ child: childId, parent: req.user.id });
+    const loggedInUserId = req.user.id;
+
+    // Resolve IDs
+    const resolvedChildId = await resolveToUserId(childId);
+
+    // Check if requester is the child
+    const isChildRequestingOwnRules = (childId === loggedInUserId || resolvedChildId === loggedInUserId);
+
+    let query = {
+      $or: [{ child: childId }, { child: resolvedChildId }]
+    };
+
+    if (!isChildRequestingOwnRules) {
+      query.parent = loggedInUserId;
+    }
+
+    const rules = await AppRule.find(query);
     res.status(200).json(rules);
   } catch (err) {
     console.error(err);

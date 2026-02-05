@@ -6,20 +6,15 @@ const User = require("../models/User");
 // Helper to resolve childId (can be from Child or User collection) to User ID
 async function resolveToUserId(childId) {
     try {
-        console.log(`🔍 Resolving childId: ${childId}`);
         const child = await Child.findById(childId);
         if (child) {
-            console.log(`   Found Child record for email: ${child.email}`);
             const user = await User.findOne({ email: child.email });
             if (user) {
-                console.log(`   Resolved to User ID: ${user._id}`);
-                return user._id;
+                return user._id.toString();
             }
-        } else {
-            console.log(`   No Child record found for ID: ${childId}, assuming it is a User ID`);
         }
     } catch (e) {
-        console.log(`   Resolution error (likely already a User ID): ${e.message}`);
+        // Likely already a User ID or invalid format
     }
     return childId;
 }
@@ -76,12 +71,25 @@ exports.createWebsiteRule = async (req, res) => {
 exports.getWebsiteRules = async (req, res) => {
     try {
         const { childId } = req.params;
+        const loggedInUserId = req.user.id;
 
-        // Lookup by both just in case
-        const rules = await WebsiteRule.find({
-            $or: [{ child: childId }, { child: await resolveToUserId(childId) }],
-            parent: req.user.id
-        });
+        // Resolve IDs to handle potential mismatches (Child ID vs User ID)
+        const resolvedChildId = await resolveToUserId(childId);
+
+        // Check if the requester is the child themselves
+        // We consider it valid if the requested childId matches the logged-in user OR the resolved ID matches
+        const isChildRequestingOwnRules = (childId === loggedInUserId || resolvedChildId === loggedInUserId);
+
+        let query = {
+            $or: [{ child: childId }, { child: resolvedChildId }]
+        };
+
+        // If it's NOT the child requesting, enforce that the logged-in user is the parent
+        if (!isChildRequestingOwnRules) {
+            query.parent = loggedInUserId;
+        }
+
+        const rules = await WebsiteRule.find(query);
         res.status(200).json(rules);
     } catch (err) {
         console.error(err);

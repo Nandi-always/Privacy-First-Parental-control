@@ -10,7 +10,7 @@ import SafetyModeScreen from '../components/SafetyModeScreen';
 import AppRequestForm from '../components/AppRequestForm';
 import PrivacyScoreCard from '../components/PrivacyScoreCard';
 import ScreenTimeWidget from '../components/ScreenTimeWidget';
-import { emergencyService, childrenService, websiteRulesService, appApprovalsService } from '../services/apiService';
+import { emergencyService, childrenService, websiteRulesService, appApprovalsService, rulesService, alertsService } from '../services/apiService';
 import '../styles/Dashboard.css';
 import '../styles/Cards.css';
 
@@ -28,24 +28,10 @@ const ChildDashboard = () => {
   const [activeSOS, setActiveSOS] = useState(null);
   const [simulatedUrl, setSimulatedUrl] = useState('');
 
-
-  // Real-time rules state for demo/interactivity
-  const [rules, setRules] = useState([
-    {
-      id: 1,
-      name: 'Social Media Limit',
-      description: 'Maximum 1 hour per day for TikTok and Instagram',
-      status: 'pending'
-    },
-    {
-      id: 2,
-      name: 'Bedtime Internet Cutoff',
-      description: 'No internet after 10 PM on school nights',
-      status: 'agreed'
-    }
-  ]);
-
-
+  // Real data state
+  const [rules, setRules] = useState([]);
+  const [websiteRules, setWebsiteRules] = useState([]);
+  const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
     // Initialize child data from user or fetch from API
@@ -63,44 +49,57 @@ const ChildDashboard = () => {
     setLoading(false);
   }, [user]);
 
-  // Poll device status every minute
+  // Fetch initial data and set up polling
   useEffect(() => {
-    const checkDeviceStatus = async () => {
-      if (!user || !user._id) return;
+    const fetchData = async () => {
+      if (!user || (!user._id && !user.id)) return;
+      const childId = user._id || user.id;
 
       try {
-        const childId = user._id || user.id;
-        const response = await childrenService.getDeviceStatus(childId);
-        const status = response.data || response;
+        // 1. Fetch Rules
+        const rulesRes = await rulesService.getAll(childId);
+        setRules(rulesRes.data || []);
 
+        // 2. Fetch Website Rules
+        const websiteRulesRes = await websiteRulesService.getAll(childId);
+        setWebsiteRules(websiteRulesRes.data || []);
+
+        // 2. Fetch Notifications/Alerts
+        // Using alertsService as a proxy for notifications for now, or we could add a specific notifications endpoint
+        const alertsRes = await alertsService.getAll(childId);
+        setNotifications(alertsRes.data || []);
+
+        // 3. Check Device Status (kept from original code to merge functionality)
+        const deviceRes = await childrenService.getDeviceStatus(childId);
+        const status = deviceRes.data || deviceRes;
         setDeviceStatus(status);
         setShowWarning(status.shouldWarn);
 
         // Update screen time display with current limit
         if (status.currentLimit) {
-          setChildData(prev => ({
+          setChildData(prev => prev ? ({
             ...prev,
             screenTime: {
               used: status.totalTimeUsed || prev.screenTime.used,
               limit: status.currentLimit
             }
-          }));
+          }) : null);
         }
+
       } catch (err) {
-        console.error('Failed to check device status', err);
+        console.error('Failed to fetch dashboard data', err);
       }
     };
 
-    // Check immediately
-    checkDeviceStatus();
+    fetchData(); // Initial fetch
 
-    // Then check every minute
-    const interval = setInterval(checkDeviceStatus, 60000);
-
+    // Poll every 30 seconds for real-time updates
+    const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, [user]);
 
-  // Check for active SOS status
+
+  // Check for active SOS status (Higher frequency polling)
   useEffect(() => {
     const checkSOS = async () => {
       if (!user?._id && !user?.id) return;
@@ -185,18 +184,28 @@ const ChildDashboard = () => {
     }
   };
 
-  const handleAgreeRule = (id) => {
-    setRules(prev => prev.map(rule =>
-      rule.id === id ? { ...rule, status: 'agreed' } : rule
-    ));
-    notify.success('Rule agreement saved!');
+  const handleAgreeRule = async (id) => {
+    try {
+      await rulesService.update(id, { status: 'agreed' });
+      setRules(prev => prev.map(rule =>
+        (rule.id === id || rule._id === id) ? { ...rule, status: 'agreed' } : rule
+      ));
+      notify.success('Rule agreement saved!');
+    } catch (err) {
+      notify.error('Failed to update rule');
+    }
   };
 
-  const handleDeclineRule = (id) => {
-    setRules(prev => prev.map(rule =>
-      rule.id === id ? { ...rule, status: 'declined' } : rule
-    ));
-    notify.info('Rule decline recorded');
+  const handleDeclineRule = async (id) => {
+    try {
+      await rulesService.update(id, { status: 'declined' });
+      setRules(prev => prev.map(rule =>
+        (rule.id === id || rule._id === id) ? { ...rule, status: 'declined' } : rule
+      ));
+      notify.info('Rule decline recorded');
+    } catch (err) {
+      notify.error('Failed to update rule');
+    }
   };
 
 
@@ -210,7 +219,7 @@ const ChildDashboard = () => {
     try {
       const childId = user._id || user.id;
       const res = await websiteRulesService.checkAccess(childId, simulatedUrl);
-      const data = res.data;
+      const data = res.data || res;
 
       if (data.blocked) {
         setBlockedSite({
@@ -492,27 +501,26 @@ const ChildDashboard = () => {
 
 
 
-                {/* Notifications (Existing) */}
+                {/* Notifications (Dynamic) */}
                 <div className="card notifications-card">
                   <div className="card-header">
                     <AlertCircle size={24} />
                     <h3>Notifications</h3>
                   </div>
                   <div className="notif-list">
-                    <div className="notif-item">
-                      <span className="notif-badge">ℹ️</span>
-                      <div>
-                        <p>New rule added</p>
-                        <small>2 hours ago</small>
-                      </div>
-                    </div>
-                    <div className="notif-item">
-                      <span className="notif-badge">⏰</span>
-                      <div>
-                        <p>30 min screen time remaining</p>
-                        <small>1 hour ago</small>
-                      </div>
-                    </div>
+                    {notifications.length === 0 ? (
+                      <p style={{ color: '#666', fontSize: '14px', padding: '10px' }}>No new notifications</p>
+                    ) : (
+                      notifications.slice(0, 3).map((notif, idx) => (
+                        <div className="notif-item" key={idx}>
+                          <span className="notif-badge">🔔</span>
+                          <div>
+                            <p>{notif.message || notif.title || 'New Notification'}</p>
+                            <small>{new Date(notif.createdAt).toLocaleTimeString()}</small>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               </div>
@@ -554,34 +562,91 @@ const ChildDashboard = () => {
 
           {activeTab === 'rules' && (
             <div className="tab-content">
-              <h2>📋 My Rules & Agreements</h2>
+              <h2>📋 My Rules</h2>
+
+              {/* App Rules Section */}
+              <h3>📱 App Limits & Rules</h3>
               <div className="rules-grid">
-                {rules.map(rule => (
-                  <div key={rule.id} className="rule-card">
-                    <div className={`rule-status ${rule.status}`}>
-                      {rule.status === 'pending' ? 'Pending Agreement' :
-                        rule.status === 'agreed' ? 'Agreed ✓' : 'Declined ✗'}
+                {rules.length === 0 ? (
+                  <div className="no-rules" style={{ textAlign: 'center', gridColumn: '1/-1', padding: '40px', background: '#f9fafb', borderRadius: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                      <span style={{ fontSize: '48px', opacity: 0.3 }}>📱</span>
                     </div>
-                    <h4>{rule.name}</h4>
-                    <p>{rule.description}</p>
-                    {rule.status === 'pending' && (
-                      <div className="rule-actions">
-                        <button
-                          className="btn btn-agree"
-                          onClick={() => handleAgreeRule(rule.id)}
-                        >
-                          Agree
-                        </button>
-                        <button
-                          className="btn btn-decline"
-                          onClick={() => handleDeclineRule(rule.id)}
-                        >
-                          Decline
-                        </button>
-                      </div>
-                    )}
+                    <p style={{ color: '#6b7280' }}>No app rules have been set.</p>
                   </div>
-                ))}
+                ) : (
+                  rules.map(rule => (
+                    <div key={rule.id || rule._id} className="rule-card" style={{ borderLeft: rule.isBlocked ? '4px solid #ef4444' : '4px solid #3b82f6' }}>
+                      <div className="rule-status" style={{
+                        background: rule.isBlocked ? '#fee2e2' : '#dbeafe',
+                        color: rule.isBlocked ? '#ef4444' : '#1d4ed8',
+                        display: 'inline-block',
+                        padding: '4px 8px',
+                        borderRadius: '12px',
+                        fontWeight: '600',
+                        fontSize: '12px',
+                        marginBottom: '8px'
+                      }}>
+                        {rule.isBlocked ? 'Blocked ⛔' : 'Time Limited ⏳'}
+                      </div>
+                      <h4>{rule.appName || rule.name || 'Unknown App'}</h4>
+                      <p style={{ margin: '8px 0', fontSize: '14px', color: '#4b5563' }}>
+                        {rule.isBlocked
+                          ? 'This app is blocked by your parent.'
+                          : `Daily Time Limit: ${rule.timeLimit ? rule.timeLimit : 'None'} mins`}
+                      </p>
+                      {rule.allowedTimeSlots && rule.allowedTimeSlots.length > 0 && (
+                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6b7280' }}>
+                          <strong>Allowed Times:</strong>
+                          <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
+                            {rule.allowedTimeSlots.map((slot, idx) => (
+                              <li key={idx}>{slot.day || 'Daily'}: {slot.startTime} - {slot.endTime}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Website Blocking Rules */}
+              <h3>🌐 Website Rules</h3>
+              <div className="rules-grid" style={{ marginTop: '16px' }}>
+                {websiteRules.length === 0 ? (
+                  <div className="no-rules" style={{ textAlign: 'center', gridColumn: '1/-1', padding: '40px', background: '#f9fafb', borderRadius: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                      <span style={{ fontSize: '48px', opacity: 0.3 }}>🌐</span>
+                    </div>
+                    <p style={{ color: '#6b7280' }}>No website restrictions active.</p>
+                  </div>
+                ) : (
+                  websiteRules.map(rule => (
+                    <div key={rule.id || rule._id} className="rule-card" style={{ borderLeft: rule.isBlocked ? '4px solid #ef4444' : '4px solid #22c55e' }}>
+                      <div className="rule-status" style={{
+                        background: rule.isBlocked ? '#fee2e2' : '#dcfce7',
+                        color: rule.isBlocked ? '#ef4444' : '#166534',
+                        display: 'inline-block',
+                        padding: '4px 8px',
+                        borderRadius: '12px',
+                        fontWeight: '600',
+                        fontSize: '12px',
+                        marginBottom: '8px'
+                      }}>
+                        {rule.isBlocked ? 'Blocked ⛔' : 'Monitored 🛡️'}
+                      </div>
+                      <h4 style={{ wordBreak: 'break-all' }}>{rule.website || rule.url}</h4>
+                      <p style={{ fontSize: '14px', color: '#6b7280' }}>
+                        {rule.category ? `Category: ${rule.category}` : 'Website Rule'}
+                      </p>
+                      {rule.blockReason && (
+                        <p style={{ fontSize: '13px', marginTop: '4px', fontStyle: 'italic', color: '#ef4444' }}>
+                          "{rule.blockReason}"
+                        </p>
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}
