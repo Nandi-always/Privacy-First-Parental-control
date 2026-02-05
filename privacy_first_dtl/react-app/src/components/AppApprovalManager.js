@@ -89,20 +89,26 @@ const AppApprovalManager = ({ childId }) => {
 
   return (
     <div className="card app-approval-manager">
-      <div className="card-header">
-        <h3>📲 App Approval Requests</h3>
-        <button className="btn btn-secondary" onClick={fetchRequests} disabled={loading}>
-          <RefreshCw size={16} className={loading ? 'spinning' : ''} /> Refresh
+      <div className="card-header" style={{ flexWrap: 'wrap', gap: '10px' }}>
+        <h3 style={{ margin: 0 }}>📲 App Approval Requests</h3>
+        <button className="btn btn-secondary" onClick={fetchRequests} disabled={loading} style={{ marginLeft: 'auto' }}>
+          <RefreshCw size={16} className={loading ? 'spinning' : ''} /> REFRESH
         </button>
       </div>
 
       {/* Filter Tabs */}
-      <div className="filter-tabs" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+      <div className="filter-tabs" style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
         {['pending', 'approved', 'denied', 'all'].map(f => (
           <button
             key={f}
             className={`btn ${filter === f ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ fontSize: '12px', padding: '6px 16px', textTransform: 'capitalize' }}
+            style={{
+              fontSize: '12px',
+              padding: '6px 16px',
+              textTransform: 'capitalize',
+              flex: '1 1 auto',
+              minWidth: '80px'
+            }}
             onClick={() => setFilter(f)}
           >
             {f}
@@ -133,9 +139,15 @@ const AppApprovalManager = ({ childId }) => {
               marginBottom: '12px',
               border: '1px solid #e5e7eb'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <div className="request-header" style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}>
+                <div style={{ flex: '1', minWidth: '200px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '24px' }}>{getCategoryIcon(request.appCategory)}</span>
                     <h4 style={{ margin: 0 }}>{request.appName}</h4>
                     {getStatusBadge(request.status)}
@@ -165,17 +177,17 @@ const AppApprovalManager = ({ childId }) => {
                 </div>
 
                 {request.status === 'pending' && (
-                  <div className="request-actions" style={{ display: 'flex', gap: '8px' }}>
+                  <div className="request-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <button
                       className="btn btn-success"
-                      style={{ padding: '8px 16px', background: '#10b981', color: 'white' }}
+                      style={{ padding: '8px 16px', background: '#10b981', color: 'white', minWidth: '100px' }}
                       onClick={() => setSelectedRequest(request)}
                     >
                       <Check size={16} /> APPROVE
                     </button>
                     <button
                       className="btn btn-danger"
-                      style={{ padding: '8px 16px', background: '#dc2626', color: 'white' }}
+                      style={{ padding: '8px 16px', background: '#dc2626', color: 'white', minWidth: '100px' }}
                       onClick={() => setSelectedRequest(request)}
                     >
                       <X size={16} /> DENY
@@ -184,16 +196,17 @@ const AppApprovalManager = ({ childId }) => {
                 )}
               </div>
 
-              {/* Response Modal */}
+              {/* Response Area */}
               {selectedRequest?._id === request._id && (
-                <div style={{
+                <div className="response-modal-inline" style={{
                   marginTop: '16px',
                   padding: '16px',
                   background: 'white',
-                  borderRadius: '8px',
-                  border: '1px solid #e5e7eb'
+                  borderRadius: '10px',
+                  border: '2px solid #3b82f6',
+                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.1)'
                 }}>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: '#1e40af' }}>
                     Add a message for your child (optional):
                   </label>
                   <textarea
@@ -206,26 +219,46 @@ const AppApprovalManager = ({ childId }) => {
                       borderRadius: '8px',
                       border: '1px solid #d1d5db',
                       minHeight: '80px',
-                      marginBottom: '12px'
+                      marginBottom: '12px',
+                      fontSize: '14px',
+                      boxSizing: 'border-box'
                     }}
                   />
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div className="modal-actions" style={{
+                    display: 'flex',
+                    gap: '10px',
+                    flexWrap: 'wrap',
+                    justifyContent: 'stretch'
+                  }}>
                     <button
                       className="btn btn-success"
-                      style={{ background: '#10b981', color: 'white' }}
+                      style={{
+                        background: '#10b981',
+                        color: 'white',
+                        flex: '1',
+                        minWidth: '150px',
+                        padding: '10px'
+                      }}
                       onClick={() => handleApprove(request._id)}
                     >
-                      <Check size={16} /> APPROVE NOW
+                      <Check size={18} /> APPROVE NOW
                     </button>
                     <button
                       className="btn btn-danger"
-                      style={{ background: '#dc2626', color: 'white' }}
+                      style={{
+                        background: '#dc2626',
+                        color: 'white',
+                        flex: '1',
+                        minWidth: '150px',
+                        padding: '10px'
+                      }}
                       onClick={() => handleDeny(request._id)}
                     >
-                      <X size={16} /> DENY NOW
+                      <X size={18} /> DENY NOW
                     </button>
                     <button
                       className="btn btn-secondary"
+                      style={{ flex: '1', minWidth: '100px' }}
                       onClick={() => {
                         setSelectedRequest(null);
                         setResponseText('');
