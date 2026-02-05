@@ -440,6 +440,11 @@
   color: var(--success-color);
 }
 
+.rule-status.declined {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger-color);
+}
+
 .rule-card h4 {
   margin: var(--spacing-sm) 0;
   font-size: 15px;
@@ -506,12 +511,15 @@
 }
 
 .btn-decline {
-  background: var(--bg-tertiary);
+  background: white;
   color: var(--text-secondary);
+  border: 1px solid var(--border-color) !important;
 }
 
 .btn-decline:hover {
-  background: var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--text-secondary) !important;
 }
 
 /* Welcome Banner */

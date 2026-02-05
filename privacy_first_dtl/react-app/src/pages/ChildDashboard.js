@@ -27,16 +27,19 @@ const ChildDashboard = () => {
   const [blockedSite, setBlockedSite] = useState(null);
   const [activeSOS, setActiveSOS] = useState(null);
   const [simulatedUrl, setSimulatedUrl] = useState('');
+
+
+  // Real-time rules state for demo/interactivity
   const [rules, setRules] = useState([
     {
       id: 1,
-      title: 'Social Media Limit',
+      name: 'Social Media Limit',
       description: 'Maximum 1 hour per day for TikTok and Instagram',
-      status: 'pending' // 'pending', 'agreed', 'declined'
+      status: 'pending'
     },
     {
       id: 2,
-      title: 'Bedtime Internet Cutoff',
+      name: 'Bedtime Internet Cutoff',
       description: 'No internet after 10 PM on school nights',
       status: 'agreed'
     }
@@ -182,18 +185,18 @@ const ChildDashboard = () => {
     }
   };
 
-  const handleAgreeRule = (ruleId) => {
-    setRules(rules.map(rule =>
-      rule.id === ruleId ? { ...rule, status: 'agreed' } : rule
+  const handleAgreeRule = (id) => {
+    setRules(prev => prev.map(rule =>
+      rule.id === id ? { ...rule, status: 'agreed' } : rule
     ));
     notify.success('Rule agreement saved!');
   };
 
-  const handleDeclineRule = (ruleId) => {
-    setRules(rules.map(rule =>
-      rule.id === ruleId ? { ...rule, status: 'declined' } : rule
+  const handleDeclineRule = (id) => {
+    setRules(prev => prev.map(rule =>
+      rule.id === id ? { ...rule, status: 'declined' } : rule
     ));
-    notify.info('Rule declined');
+    notify.info('Rule decline recorded');
   };
 
 
@@ -556,16 +559,25 @@ const ChildDashboard = () => {
                 {rules.map(rule => (
                   <div key={rule.id} className="rule-card">
                     <div className={`rule-status ${rule.status}`}>
-                      {rule.status === 'pending' && 'Pending Agreement'}
-                      {rule.status === 'agreed' && 'Agreed ✓'}
-                      {rule.status === 'declined' && 'Declined'}
+                      {rule.status === 'pending' ? 'Pending Agreement' :
+                        rule.status === 'agreed' ? 'Agreed ✓' : 'Declined ✗'}
                     </div>
-                    <h4>{rule.title}</h4>
+                    <h4>{rule.name}</h4>
                     <p>{rule.description}</p>
                     {rule.status === 'pending' && (
                       <div className="rule-actions">
-                        <button className="btn-agree" onClick={() => handleAgreeRule(rule.id)}>Agree</button>
-                        <button className="btn-decline" onClick={() => handleDeclineRule(rule.id)}>Decline</button>
+                        <button
+                          className="btn btn-agree"
+                          onClick={() => handleAgreeRule(rule.id)}
+                        >
+                          Agree
+                        </button>
+                        <button
+                          className="btn btn-decline"
+                          onClick={() => handleDeclineRule(rule.id)}
+                        >
+                          Decline
+                        </button>
                       </div>
                     )}
                   </div>
