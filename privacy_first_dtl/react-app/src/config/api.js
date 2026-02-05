@@ -56,9 +56,11 @@ export const API_ENDPOINTS = {
 
   // Emergency
   EMERGENCY: {
-    SEND_SOS: `${API_BASE_URL}/emergency/sos`,
+    SEND_SOS: (childId) => `${API_BASE_URL}/emergency/${childId}/sos`,
     GET_ALERTS: (childId) => `${API_BASE_URL}/emergency/${childId}/alerts`,
     ACKNOWLEDGE: (id) => `${API_BASE_URL}/emergency/${id}/acknowledge`,
+    UPDATE_LOCATION: (alertId) => `${API_BASE_URL}/emergency/${alertId}/update-location`,
+    MARK_SAFE: (alertId) => `${API_BASE_URL}/emergency/${alertId}/mark-safe`,
   },
 
   // Reports

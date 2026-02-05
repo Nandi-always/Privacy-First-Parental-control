@@ -1,5 +1,5 @@
 import React from 'react';
-import { Lock, Clock, AlertTriangle } from 'lucide-react';
+import { Clock, AlertTriangle } from 'lucide-react';
 import '../styles/DeviceLockScreen.css';
 
 const DeviceLockScreen = ({ lockReason, warningMessage, bedtimeEnd, remainingTime }) => {

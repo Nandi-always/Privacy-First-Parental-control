@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Check, X, Clock, AlertCircle, RefreshCw } from 'lucide-react';
+import { Check, X, Clock, RefreshCw } from 'lucide-react';
 import { appApprovalsService } from '../services/apiService';
 import { useNotification } from '../context/NotificationContext';
 import '../styles/Cards.css';

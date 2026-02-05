@@ -245,6 +245,14 @@ const ParentDashboard = () => {
                     {/* ActivityLogsViewer displays detailed logs, ActivityReport is summary */}
                     <ActivityReport child={selectedChild} />
 
+                    {/* App Approval Requests - NEW! Show child requests prominently */}
+                    {selectedChild && (
+                      <div className="card app-requests-summary">
+                        <h3>📱 App Requests & Notifications</h3>
+                        <AppApprovalManager childId={selectedChild._id || selectedChild.id} compact={true} />
+                      </div>
+                    )}
+
                     {/* Risky Activity Summary */}
                     <div className="card alerts-summary">
                       <h3>Risky Activity Status</h3>

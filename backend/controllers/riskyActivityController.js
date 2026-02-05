@@ -4,6 +4,7 @@ const WebsiteRule = require("../models/WebsiteRule");
 const Location = require("../models/Location");
 const AppDownloadAlert = require("../models/AppDownloadAlert");
 const Child = require("../models/Child");
+const User = require("../models/User");
 const Notification = require("../models/Notification");
 
 // Detect risky activity (called by cron job or manually)

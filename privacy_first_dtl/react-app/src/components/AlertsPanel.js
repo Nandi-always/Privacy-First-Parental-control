@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { AlertCircle, Check, X, Clock, Shield, Ban, MapPin } from 'lucide-react';
+import { AlertCircle, Check, X, Clock } from 'lucide-react';
 import { alertsService } from '../services/apiService';
 import '../styles/Cards.css';
 

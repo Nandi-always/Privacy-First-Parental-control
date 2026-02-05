@@ -27,6 +27,20 @@ const ChildDashboard = () => {
   const [blockedSite, setBlockedSite] = useState(null);
   const [activeSOS, setActiveSOS] = useState(null);
   const [simulatedUrl, setSimulatedUrl] = useState('');
+  const [rules, setRules] = useState([
+    {
+      id: 1,
+      title: 'Social Media Limit',
+      description: 'Maximum 1 hour per day for TikTok and Instagram',
+      status: 'pending' // 'pending', 'agreed', 'declined'
+    },
+    {
+      id: 2,
+      title: 'Bedtime Internet Cutoff',
+      description: 'No internet after 10 PM on school nights',
+      status: 'agreed'
+    }
+  ]);
 
 
 
@@ -120,46 +134,66 @@ const ChildDashboard = () => {
 
       let lat = 0;
       let lng = 0;
+      let locationObtained = false;
 
-      // Try to get fresh location if possible
+      // Try to get fresh location if possible (but don't fail if denied)
       if ('geolocation' in navigator) {
         try {
           const pos = await new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3000 });
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              timeout: 5000,
+              enableHighAccuracy: false // Don't require high accuracy
+            });
           });
           lat = pos.coords.latitude;
           lng = pos.coords.longitude;
+          locationObtained = true;
+          console.log('✅ Location obtained for SOS:', lat, lng);
         } catch (locErr) {
-          console.warn('Could not get fresh location for SOS', locErr);
+          console.warn('⚠️ Could not get location for SOS (will send without):', locErr.message);
+          // Continue anyway - location is optional
         }
       }
 
-      // Send SOS
+      // Send SOS (works with or without location)
+      console.log('📡 Sending SOS alert...');
       await emergencyService.sendSOS(childId, {
         latitude: lat,
         longitude: lng,
-        message: 'Child triggered SOS Emergency Alert'
+        message: locationObtained
+          ? 'Child triggered SOS Emergency Alert with location'
+          : 'Child triggered SOS Emergency Alert (location unavailable)'
       });
 
-      notify.warning('🆘 SOS Alert sent to parents with your location!');
+      notify.warning(locationObtained
+        ? '🆘 SOS Alert sent to parents with your location!'
+        : '🆘 SOS Alert sent to parents!');
+
       // Immediately check to activate Safety Mode screen
       const res = await emergencyService.getAlerts(childId);
       const active = res.data?.find(a => !a.resolved);
       if (active) setActiveSOS(active);
     } catch (err) {
-      console.error('Failed to send SOS', err);
-      notify.error('Failed to send SOS alert. Please try calling your parents directly!');
+      console.error('❌ Failed to send SOS:', err);
+      const errorMsg = err.response?.data?.message || err.message || 'Unknown error';
+      notify.error(`Failed to send SOS: ${errorMsg}. Please call your parents directly!`);
     } finally {
       setSendingSOS(false);
     }
   };
 
-  const handleAgreeRule = () => {
+  const handleAgreeRule = (ruleId) => {
+    setRules(rules.map(rule =>
+      rule.id === ruleId ? { ...rule, status: 'agreed' } : rule
+    ));
     notify.success('Rule agreement saved!');
   };
 
-  const handleDeclineRule = () => {
-    notify.info('Rule decline recorded');
+  const handleDeclineRule = (ruleId) => {
+    setRules(rules.map(rule =>
+      rule.id === ruleId ? { ...rule, status: 'declined' } : rule
+    ));
+    notify.info('Rule declined');
   };
 
 
@@ -223,6 +257,7 @@ const ChildDashboard = () => {
       <SafetyModeScreen
         alert={activeSOS}
         childId={user._id || user.id}
+        onMarkSafe={() => setActiveSOS(null)} // ✅ Immediate exit when marked safe
       />
     );
   }
@@ -518,22 +553,23 @@ const ChildDashboard = () => {
             <div className="tab-content">
               <h2>📋 My Rules & Agreements</h2>
               <div className="rules-grid">
-                {/* Rules content */}
-                <div className="rule-card">
-                  <div className="rule-status pending">Pending Agreement</div>
-                  <h4>Social Media Limit</h4>
-                  <p>Maximum 1 hour per day for TikTok and Instagram</p>
-                  <div className="rule-actions">
-                    <button className="btn-agree" onClick={handleAgreeRule}>Agree</button>
-                    <button className="btn-decline" onClick={handleDeclineRule}>Decline</button>
+                {rules.map(rule => (
+                  <div key={rule.id} className="rule-card">
+                    <div className={`rule-status ${rule.status}`}>
+                      {rule.status === 'pending' && 'Pending Agreement'}
+                      {rule.status === 'agreed' && 'Agreed ✓'}
+                      {rule.status === 'declined' && 'Declined'}
+                    </div>
+                    <h4>{rule.title}</h4>
+                    <p>{rule.description}</p>
+                    {rule.status === 'pending' && (
+                      <div className="rule-actions">
+                        <button className="btn-agree" onClick={() => handleAgreeRule(rule.id)}>Agree</button>
+                        <button className="btn-decline" onClick={() => handleDeclineRule(rule.id)}>Decline</button>
+                      </div>
+                    )}
                   </div>
-                </div>
-
-                <div className="rule-card">
-                  <div className="rule-status agreed">Agreed ✓</div>
-                  <h4>Bedtime Internet Cutoff</h4>
-                  <p>No internet after 10 PM on school nights</p>
-                </div>
+                ))}
               </div>
             </div>
           )}

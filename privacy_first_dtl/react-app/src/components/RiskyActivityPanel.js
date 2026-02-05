@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { AlertTriangle, Check, RefreshCw, Filter, BarChart3 } from 'lucide-react';
+import { AlertTriangle, Check, RefreshCw } from 'lucide-react';
 import { riskyActivityService } from '../services/apiService';
 import { useNotification } from '../context/NotificationContext';
 import '../styles/Cards.css';

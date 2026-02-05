@@ -126,11 +126,15 @@ export const locationService = {
 
 export const emergencyService = {
   sendSOS: (childId, location) =>
-    apiClient.post(API_ENDPOINTS.EMERGENCY.SEND_SOS, { childId, location }),
+    apiClient.post(API_ENDPOINTS.EMERGENCY.SEND_SOS(childId), location),
   getAlerts: (childId) =>
     apiClient.get(API_ENDPOINTS.EMERGENCY.GET_ALERTS(childId)),
   acknowledge: (id) =>
     apiClient.post(API_ENDPOINTS.EMERGENCY.ACKNOWLEDGE(id)),
+  updateLocation: (alertId, location) =>
+    apiClient.post(API_ENDPOINTS.EMERGENCY.UPDATE_LOCATION(alertId), location),
+  markSafe: (alertId, data) =>
+    apiClient.post(API_ENDPOINTS.EMERGENCY.MARK_SAFE(alertId), data),
 };
 
 export const reportsService = {
@@ -147,6 +151,47 @@ export const downloadsService = {
     apiClient.post(`/downloads/${id}/approve`),
   block: (id) =>
     apiClient.post(`/downloads/${id}/block`),
+};
+
+export const websiteRulesService = {
+  getAll: (childId) =>
+    apiClient.get(`/website-rules/${childId}`),
+  create: (data) =>
+    apiClient.post('/website-rules', data),
+  update: (ruleId, data) =>
+    apiClient.put(`/website-rules/${ruleId}`, data),
+  delete: (ruleId) =>
+    apiClient.delete(`/website-rules/${ruleId}`),
+  checkAccess: (childId, url) =>
+    apiClient.get(`/website-rules/${childId}/check`, { params: { url } }),
+  getBlockedAttempts: (childId) =>
+    apiClient.get(`/website-rules/${childId}/attempts`),
+  logAttempt: (childId, data) =>
+    apiClient.post(`/website-rules/${childId}/log-attempt`, data),
+};
+
+export const appApprovalsService = {
+  requestApproval: (childId, data) =>
+    apiClient.post(`/app-approvals/${childId}/request`, data),
+  getChildRequests: (childId) =>
+    apiClient.get(`/app-approvals/${childId}/my-requests`),
+  getRequests: (filter, childId) =>
+    apiClient.get('/app-approvals', { params: { filter, childId } }),
+  approve: (requestId, responseText) =>
+    apiClient.post(`/app-approvals/${requestId}/approve`, { responseText }),
+  deny: (requestId, responseText) =>
+    apiClient.post(`/app-approvals/${requestId}/deny`, { responseText }),
+};
+
+export const riskyActivityService = {
+  detect: (childId) =>
+    apiClient.post(`/risky-activities/${childId}/detect`),
+  getAlerts: (childId, filter = 'all') =>
+    apiClient.get(`/risky-activities/${childId}`, { params: { filter } }),
+  getStats: (childId, days = 7) =>
+    apiClient.get(`/risky-activities/${childId}/stats`, { params: { days } }),
+  acknowledge: (alertId) =>
+    apiClient.put(`/risky-activities/${alertId}/acknowledge`),
 };
 
 export default apiClient;

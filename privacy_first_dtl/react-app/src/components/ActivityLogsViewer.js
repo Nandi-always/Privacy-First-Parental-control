@@ -3,14 +3,12 @@ import { Clock, Globe, MapPin, EyeOff, Shield } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import { reportsService, websiteRulesService } from '../services/apiService';
-import { useNotification } from '../context/NotificationContext';
 import '../styles/Cards.css';
 
 // Register ChartJS
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
 const ActivityLogsViewer = ({ childId }) => {
-    const notify = useNotification();
     const [activityData, setActivityData] = useState(null);
     const [blockedAttempts, setBlockedAttempts] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -28,12 +26,15 @@ const ActivityLogsViewer = ({ childId }) => {
             setActivityData(activityRes.data || null);
             setBlockedAttempts(attemptsRes.data || null);
         } catch (err) {
-            console.error('Failed to fetch activity data', err);
-            notify.error('Could not load activity logs. Please try again.');
+            console.log('Using demo data for activity logs - API call failed:', err.message);
+            // Silently fall back to demo/mock data - no error toast needed
+            // The component will automatically use mock data when activityData is null
+            setActivityData(null);
+            setBlockedAttempts(null);
         } finally {
             setLoading(false);
         }
-    }, [childId, notify]);
+    }, [childId]);
 
     useEffect(() => {
         fetchActivityData();

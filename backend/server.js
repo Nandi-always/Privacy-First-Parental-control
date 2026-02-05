@@ -28,6 +28,9 @@ app.use("/api/downloads", require("./routes/downloadAlertRoutes"));
 app.use("/api/reports", require("./routes/reportRoutes"));
 app.use("/api/notifications", require("./routes/notificationRoutes"));
 app.use("/api/alerts", require("./routes/alertRoutes"));
+app.use("/api/website-rules", require("./routes/websiteRuleRoutes"));
+app.use("/api/app-approvals", require("./routes/appApprovalRoutes"));
+app.use("/api/risky-activities", require("./routes/riskyActivityRoutes"));
 
 // Test route
 app.get("/", (req, res) => {
