@@ -12,9 +12,35 @@ exports.requestAppApproval = async (req, res) => {
 
         console.log(`📱 App approval request from child: ${childId} for ${appName}`);
 
-        // Check if request already exists
+        // --- 1. ID Resolution ---
+        let childDoc = await Child.findById(childId);
+        let resolvedChildId = childId;
+        let parentId;
+
+        if (childDoc) {
+            // Found in Child collection, try to find linked User
+            const childUser = await User.findOne({ email: childDoc.email });
+            if (childUser) {
+                resolvedChildId = childUser._id.toString();
+            }
+        } else {
+            // Not in Child collection, check User collection
+            childDoc = await User.findById(childId);
+            if (childDoc) {
+                resolvedChildId = childDoc._id.toString();
+            }
+        }
+
+        if (!childDoc) {
+            console.error(`❌ Child not found for ID: ${childId}`);
+            return res.status(404).json({ message: "Child account not found" });
+        }
+
+        console.log(`   Resolved Child ID: ${resolvedChildId}`);
+
+        // --- 2. Check for Existing Request ---
         const existingRequest = await AppApprovalRequest.findOne({
-            child: childId,
+            child: resolvedChildId,
             appName,
             status: "pending"
         });
@@ -23,49 +49,21 @@ exports.requestAppApproval = async (req, res) => {
             return res.status(400).json({ message: "Request already pending for this app" });
         }
 
-        // Get child and parent info
-        let childDoc = await Child.findById(childId);
-        let parentId;
-        let resolvedChildId = childId;
-
-        if (childDoc) {
-            // If we found a record in Child collection, find the linked User record
-            const childUser = await User.findOne({ email: childDoc.email });
-            if (childUser) {
-                resolvedChildId = childUser._id;
-                console.log(`   Resolved Child ID to User ID: ${resolvedChildId}`);
-            }
-        } else {
-            // Check User collection directly
-            childDoc = await User.findById(childId);
-        }
-
-        if (!childDoc) {
-            console.error(`❌ Child not found for ID: ${childId}`);
-            return res.status(404).json({ message: "Child account not found" });
-        }
-
-        // Safely extract parent ID avoiding Mongoose method conflict
+        // --- 3. Extract Parent ID ---
         const childData = childDoc.toObject();
         parentId = childData.parent || childData.parentId;
 
-        // Fallback: search for any parent if not linked (for demo)
+        // Fallback for demo/unlinked accounts
         if (!parentId || typeof parentId === 'function') {
-            console.warn(`⚠️ No parent linked to child ${childId}, searching for fallback parent...`);
             const fallbackParent = await User.findOne({ role: 'parent' });
-            if (fallbackParent) {
-                parentId = fallbackParent._id;
-                console.log(`   Using fallback parent: ${parentId}`);
-            }
+            if (fallbackParent) parentId = fallbackParent._id;
         }
 
-        if (!parentId || typeof parentId === 'function') {
-            console.error(`❌ Parent ID not found for child: ${childId}`);
+        if (!parentId) {
             return res.status(400).json({ message: "Your account is not linked to any parent." });
         }
 
-        console.log(`   Reporting request to parent: ${parentId}`);
-
+        // --- 4. Create Request ---
         const approvalRequest = new AppApprovalRequest({
             child: resolvedChildId,
             parent: parentId,
@@ -76,21 +74,19 @@ exports.requestAppApproval = async (req, res) => {
         });
 
         await approvalRequest.save();
-        console.log(`✅ App request saved successfully`);
 
         // Notify parent
         try {
             const notif = new Notification({
-                senderId: childId,
+                senderId: resolvedChildId,
                 receiverId: parentId,
                 type: "app_approval_request",
                 message: `${childDoc.name || 'Your child'} requests approval for app: ${appName}`,
                 isRead: false
             });
             await notif.save();
-            console.log(`🔔 Notification sent to parent: ${parentId}`);
-        } catch (notifErr) {
-            console.warn(`⚠️ Failed to send notification:`, notifErr.message);
+        } catch (e) {
+            console.warn('Failed to send notification', e);
         }
 
         res.status(201).json({

@@ -233,6 +233,7 @@ const ChildDashboard = () => {
       }
     } catch (err) {
       console.error('Check failed', err);
+      notify.error('Failed to check website access. Please try again.');
     }
   };
 
@@ -250,7 +251,7 @@ const ChildDashboard = () => {
       setBlockedSite(null);
       setSimulatedUrl('');
     } catch (err) {
-      notify.error('Failed to send request');
+      notify.error(err.response?.data?.message || 'Failed to send request');
     }
   };
 
@@ -462,7 +463,7 @@ const ChildDashboard = () => {
                         });
                         notify.success('Request for more time sent!');
                       } catch (err) {
-                        notify.error('Failed to send request');
+                        notify.error(err.response?.data?.message || 'Failed to send request');
                       }
                     }}>
                       <span>⏱️</span> More Time
@@ -479,7 +480,7 @@ const ChildDashboard = () => {
                         });
                         notify.success('Request to unblock app sent!');
                       } catch (err) {
-                        notify.error('Failed to send request');
+                        notify.error(err.response?.data?.message || 'Failed to send request');
                       }
                     }}>
                       <span>🔓</span> Unblock App

@@ -163,7 +163,7 @@ export const websiteRulesService = {
   delete: (ruleId) =>
     apiClient.delete(`/website-rules/${ruleId}`),
   checkAccess: (childId, url) =>
-    apiClient.get(`/website-rules/${childId}/check`, { params: { url } }),
+    apiClient.get(`/website-rules/${childId}/check`, { params: { website: url } }),
   getBlockedAttempts: (childId) =>
     apiClient.get(`/website-rules/${childId}/attempts`),
   logAttempt: (childId, data) =>
